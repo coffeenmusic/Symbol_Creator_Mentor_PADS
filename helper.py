@@ -223,7 +223,7 @@ class Pin:
             num_x += num_delta_x
         elif side == 'Right':
             num_x -= num_delta_x
-            num_just = 'Upper Left'
+            num_just = 'Lower Left'
         
         num = Property()
         num.define_property('#', num_x, num_y, 100, 0, num_just, 'Visible', val)
