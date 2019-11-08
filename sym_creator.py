@@ -13,6 +13,14 @@ class Symbol_Creator:
     def __init__(self, out_dir='', out_symbol_name='export'):
         self.out_dir = out_dir
         self.out_symbol_name = out_symbol_name
+        self.create_default_conditions()
+    
+    # Default conditional arguments that define which side pins fall on
+    def create_default_conditions(self):
+        cond_list = ['not IN sw OUT R', 'not IN ew OUT R', 'not IN sw IN L', 'is IN all IN L', 'is OUT all OUT R']
+        left = ['GND', 'GROUND', 'PAD']
+        cond_list += ['is any c ' + v + ' L' for v in left]
+        self.default_cond_list = cond_list
     
     """
     f: open file to write symbol data to
@@ -38,11 +46,13 @@ class Symbol_Creator:
     
     # From pins in the imported dataframe, find pins that share the same name minus the trailing _N or _P
     def get_diff_pairs(self, df):
+        diff_pair_identifiers = ('_N', '_P')
+    
         lbl_list = list(df['Pin Label'].values)
-        diff_list = [l[:-1] if l.endswith(('_P', '_N')) else l for l in lbl_list]
+        diff_list = [l[:-1] if l.endswith(diff_pair_identifiers) else l for l in lbl_list]
         cnt = Counter(diff_list)
         diff_list = [l for l, v in cnt.items() if v > 1] # list labels that have both an _N and _P counterpart
-        diff_list_full = [l for l in lbl_list if l.endswith(('_P', '_N')) and l[:-1] in diff_list] # get original label names for above list
+        diff_list_full = [l for l in lbl_list if l.endswith(diff_pair_identifiers) and l[:-1] in diff_list] # get original label names for above list
         
         df['Diff'] = [diff_list.index(l[:-1]) if l in diff_list_full else -1 for l in lbl_list]
         return df
@@ -91,34 +101,41 @@ class Symbol_Creator:
         df.loc[df.Side == side_dict['Right'], 'sort'] = [i for i in range(len(df.loc[df.Side == side_dict['Right'], 'Side']))]
         
         return df
-        
+    
+    # Adds gaps between pins for given definition below
+    # Setting a gap for a pin means the gap occurs below the pin
     def get_gaps(self, df):
         gap_list = []
         prev_diff = False
         gaps = np.zeros((len(df)))
         
+        # Get duplicates for columns passed in
+        df['Duplicate'] = df.duplicated(['Diff','NC','PAD','GND','PWR','INV'], keep='first')
+        
         idx = {col:i+1 for i, col in enumerate(df.columns)}
         for i, r in enumerate(df.itertuples()):
-            
             lbl = r[idx['Pin Label']]
             ptype = r[idx['Pin Type']]
-            side = r[idx['Side']]
             inv = r[idx['Inverted']]
-            diff = r[idx['Diff']]
+            diff = r[idx['Diff']] >= 0
             sort = r[idx['sort']]
+            dup = r[idx['Duplicate']]
 
             # Add gaps to differential pairs
             if diff and inv:
                 gaps[i] = 1
             elif diff and not(inv):
                 if i + 1 < len(df):
-                    gaps[i+1] = 2
+                    gaps[i+1] = -1
                 
             if lbl.startswith('NC'):
                 if i + 1 < len(df):
                     gaps[i+1] = 1
+            elif not(dup):
+                gaps[i] = 1
+            
                 
-            if gaps[i] == 2:
+            if gaps[i] == -1:
                 if not(diff):
                     gaps[i] = 1
             
@@ -140,7 +157,7 @@ class Symbol_Creator:
         idx = {col:i+1 for i, col in enumerate(df.columns)}
         for r in df.itertuples():
             i = r[0] # dataframe index
-            order = r[idx['Pin Order']]
+            #order = r[idx['Pin Order']]
             lbl = r[idx['Pin Label']]
             num = r[idx['Pin Number']]
             ptype = r[idx['Pin Type']]
@@ -161,11 +178,101 @@ class Symbol_Creator:
         df.loc[:, 'y'] = y
         
         return df
+    
+    """
+    If names end with active low identifier, example '_N', then set inverted true and add to dataframe
+    - df [dataframe]: csv as pandas df with pin labels.
+    returns: dataframe
+    """
+    def predict_inverted_to_df(self, df):
+        al = Pin().active_low_identifiers
+        inv = [False]*len(df)
         
-    def symbol_from_csv(self, csv_file, symbol_name, pin_len = 300, box_margin=100):    
+        idx = {col:i+1 for i, col in enumerate(df.columns)}
+        for i, r in enumerate(df.itertuples()):
+            lbl = r[idx['Pin Label']]
+            
+            if lbl.endswith(al):
+                inv[i] = True
+                
+        df['Inverted'] = inv
+        return df 
+
+    """
+    If pin type is in or name contains IN, then left side. Else right side.
+    - df [dataframe]: csv as pandas df with pin type and label.
+    - cond_list [list of strs]: each string in format to control which side
+        operator ptype method string side
+            operator: is, not (specifies not ptype. Ex: 'not IN' means any ptype except IN])
+            ptype: any, IN, OUT, BI, TRI, ANALOG, POWER, etc.
+            method: startswith 'sw', endswith 'ew', contains 'c', set for all pin names 'all ptype' ex: 'is IN all IN L' (sets all input pins to the left)
+            string: part of text you want to analyze in the pin label. Example: 'PAD'
+            side: Left or Right
+        note: items at the end of the list take highest priority
+    returns: dataframe with addition of side column
+    """
+    def predict_side_to_df(self, df, cond_list):
+        side_dict = Pin().side_dict
+        cond2side = {'L':'Left', 'R':'Right', 'T':'Top', 'B':'Bottom'} # convert condition_list script sides to full word
+        side = ['Left']*len(df)
+        
+        idx = {col:i+1 for i, col in enumerate(df.columns)}
+        for i, r in enumerate(df.itertuples()):
+            lbl = r[idx['Pin Label']]
+            ptype = r[idx['Pin Type']]
+            
+            for c in cond_list:
+                c = c.split()
+                assert len(c) == 5, 'Each item in conditional list must contain 5 items seperated by spaces!'
+                op = c[0] # Operator
+                pt = c[1] # Pin Type
+                mt = c[2] # Method
+                t = c[3] # String Text
+                s = cond2side[c[4]] # side
+                
+                # All these if statements just parse the cond_list of input scripts
+                if op == 'is':
+                    if ptype == pt:
+                        if mt == 'sw':
+                            if lbl.startswith(t):
+                                side[i] = s
+                        elif mt == 'ew':
+                            if lbl.endswith(t):
+                                side[i] = s
+                        elif mt == 'c':
+                            if t in lbl:
+                                side[i] = s    
+                        elif mt == 'all':
+                            side[i] = s
+                elif op == 'not':
+                    if ptype != pt:
+                        if mt == 'sw':
+                            if lbl.startswith(t):
+                                side[i] = s
+                        elif mt == 'ew':
+                            if lbl.endswith(t):
+                                side[i] = s
+                        elif mt == 'c':
+                            if t in lbl:
+                                side[i] = s
+                        elif mt == 'all':
+                            side[i] = s
+                                
+        df['Side'] = side
+        return df 
+        
+    def symbol_from_csv(self, csv_file, symbol_name, pin_len = 300, box_margin=100, cond_list=None):    
         # Import CSV
         df = pd.read_csv(csv_file, delimiter=';')
         df = self.get_diff_pairs(df)
+        
+        # If csv doesn't have Inverted Column, then create it
+        if not('Inverted' in df.columns.values):
+            df = self.predict_inverted_to_df(df)
+        if not('Side' in df.column.values):
+            if cond_list == None:
+                cond_list = self.default_cond_list
+            df = self.predict_side_to_df(df, cond_list)
         
         w = self.estimate_box_width(list(df['Pin Label'].values))
         
@@ -180,7 +287,7 @@ class Symbol_Creator:
         # Create and add pins to symbol object for each pin in imported csv
         for r in df.itertuples():
             i = r[0] # dataframe index
-            order = r[idx['Pin Order']]
+            #order = r[idx['Pin Order']]
             lbl = r[idx['Pin Label']]
             num = r[idx['Pin Number']]
             ptype = r[idx['Pin Type']]

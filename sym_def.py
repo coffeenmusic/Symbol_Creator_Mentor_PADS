@@ -239,6 +239,7 @@ class Pin:
     side_dict = {'Top': 0, 'Bottom': 1, 'Left': 2, 'Right': 3}
     inv_dict = {False: 0, 'False': 0, 'FALSE': 0, 'Inverted': 1, True: 1, 'True': 1, 'TRUE': 1} # Inverted
     pin_types = ['IN', 'OUT', 'BI', 'TRI', 'OCL', 'OEM', 'POWER', 'GROUND', 'ANALOG']
+    active_low_identifiers = ('_N', '#') # I know there are more (not including). I'll leave that to someone else or some other time
     
     def __init__(self):
         self.idx2val = {v:k for k, v in self.idx.items()}
@@ -386,6 +387,9 @@ class Symbol:
     symtype_to_idx = {'Composite': 0, 'Module': 1, 'Annotate': 3, 'Pin': 4, 'Border': 5}
     vis_dict = {0: 'Hidden', 2: 'Hidden-wProperty', 3: 'Visible', 4: 'Visible-wProperty'}
     sym_type = {0: 'Composite', 1: 'Module', 2: 'Pin', 4: 'Annotate', 5: 'Border'}
+    comp2refdes = {'IC': 'U?', 'Integrated Circuit': 'U?', 'Resistor': 'R?', 'Capacitor': 'C?', 'Inductor': 'L?', 
+    'Connector': 'J?', 'Diode': 'D?', 'Test Point': 'TP?', 'Ferrite Bead': 'FB?', 'Transformer': 'T?', 'XFMR': 'T?', 
+    'Oscillator': 'Y?', 'LED': 'LD?', 'Transistor': 'Q?', 'Switch': 'SW?'}
     
     def __init__(self, symbol_type='Module'):
         self.set_defaults()
@@ -480,10 +484,11 @@ class Symbol:
         self.property_value = self.get_default_property('VALUE', 'VALUE', x=300, y=-200, vis='Visible')
         self.property_pkg_style = self.get_default_property('PKG_STYLE', 'PKG_STL', x=300, y=-300, vis='Visible')
         
-    def set_refdes(self, box_min_x, box_max_y):
+    def set_refdes(self, box_min_x, box_max_y, component='IC'):
         x = box_min_x + 100 # Add delta 100mil
         y = box_max_y + 100 # Add delta 100mil
-        self.property_refdes = self.get_default_property('REFDES', 'U?', x=x, y=y, vis='Visible', just='Upper Left')
+        refdes = self.comp2refdes[component] # Ex: U? for Integrated Circuit
+        self.property_refdes = self.get_default_property('REFDES', refdes, x=x, y=y, vis='Visible', just='Upper Left')
     
     # Get property object for one of the default symbol properties
     def get_default_property(self, prop, val, hdr='U', x=0, y=0, size=90, rot=0, just='Middle Left', vis='Hidden'):
@@ -547,7 +552,7 @@ class Symbol:
         str_list += self.get_header_str_list()
         str_list += self.get_pins_str_list()
         str_list += self.get_box_str_list()
-        self.get_property_str_list()
+        str_list += self.get_property_str_list()
         str_list += self.get_footer_str_list()
         
         return str_list
