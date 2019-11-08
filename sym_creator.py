@@ -2,6 +2,7 @@ import os
 import numpy as np
 import pandas as pd
 import math
+import re
 from collections import Counter
 from sym_def import Symbol, Box, GFX, Font, Color, Pin, Property, PinName, mils_to_units, units_to_mils, side_dict, side_idx2val
 
@@ -18,8 +19,23 @@ class Symbol_Creator:
     # Default conditional arguments that define which side pins fall on
     def create_default_conditions(self):
         cond_list = ['not IN sw OUT R', 'not IN ew OUT R', 'not IN sw IN L', 'is IN all IN L', 'is OUT all OUT R']
-        left = ['GND', 'GROUND', 'PAD']
+        
+        # Starts With substring, any pin type
+        left = ['ADDR','EN_']
+        cond_list += ['is any sw ' + v + ' L' for v in left]
+        right = ['FB','NC','PG','SW','VCC','VDD']
+        cond_list += ['is any sw ' + v + ' R' for v in right]
+        
+        # Contains substring, any pin type
+        left = ['GND','GROUND','PAD','SCL','SDA']
         cond_list += ['is any c ' + v + ' L' for v in left]
+        
+        # Equals string, any pin type
+        left = ['BIAS','EN','PVIN','RESET','VIN']
+        cond_list += ['is any eq ' + v + ' L' for v in left]
+        right = ['SNS','VSNS']
+        cond_list += ['is any eq ' + v + ' R' for v in right]
+        
         self.default_cond_list = cond_list
     
     """
@@ -58,11 +74,35 @@ class Symbol_Creator:
         return df
         
     """
-    Pin order is defined as 0 to n from bottom to top
-    df [DataFrame]: full csv as dataframe
+    Get signals that should be grouped together. Looks for matching names that end in numeric values
+    """    
+    def get_groups(self, df):
+        p = re.compile('[a-zA-Z]{2,}[0-9]{1,}')
+        matches = []
+        for v in df['Pin Label'].values:
+            m = p.match(v)
+            if m != None:
+                match_val = m.group()
+                matches += [''.join([v for v in match_val if v.isalpha()])]
+                
+        # list of groups found
+        groups = [k for k, v in Counter(matches).items() if v > 1]
+        groups.sort()
+        
+        # enumerates groups with a group index from 0 to n. -1 for names that don't have a group
+        df['group'] = [[i for i, g in enumerate(groups) if v.startswith(g)][0] if v.startswith(tuple(groups)) else -1 for v in df.loc[:, 'Pin Label'].values]
+        return df
+    
+        
+    """
+    Sort df by values in sort list in decreasing order of importance
+    Pin order is defined as 0 to n from bottom to top of symbol
+    - df [DataFrame]: full csv as dataframe
+    returns: sorted dataframe
     """
     def sort_pin_df(self, df):
-        sort = ['Side', 'PWR', 'NC', 'PAD', 'GND', 'Diff', 'INV', 'Pin Number']
+        sort = ['Side', 'PWR', 'NC', 'PAD', 'GND', 'group', 'Diff', 'INV', 'Pin Number']
+        df = self.get_groups(df)
         
         nc = []
         pad = []
@@ -109,8 +149,10 @@ class Symbol_Creator:
         prev_diff = False
         gaps = np.zeros((len(df)))
         
-        # Get duplicates for columns passed in
-        df['Duplicate'] = df.duplicated(['Diff','NC','PAD','GND','PWR','INV'], keep='first')
+        # Get gaps for pin type changes
+        pt_list = list(df['Pin Type'].values)
+        temp = pd.DataFrame({'Pin Type': pt_list, 'Next Type': [df.iloc[0]['Pin Type']]+pt_list[:-1]})
+        df['Type_Change'] = temp['Pin Type'] != temp['Next Type']
         
         idx = {col:i+1 for i, col in enumerate(df.columns)}
         for i, r in enumerate(df.itertuples()):
@@ -119,7 +161,7 @@ class Symbol_Creator:
             inv = r[idx['Inverted']]
             diff = r[idx['Diff']] >= 0
             sort = r[idx['sort']]
-            dup = r[idx['Duplicate']]
+            tc = r[idx['Type_Change']]
 
             # Add gaps to differential pairs
             if diff and inv:
@@ -130,10 +172,9 @@ class Symbol_Creator:
                 
             if lbl.startswith('NC'):
                 if i + 1 < len(df):
-                    gaps[i+1] = 1
-            elif not(dup):
+                    gaps[i+1] = 1 
+            if tc:
                 gaps[i] = 1
-            
                 
             if gaps[i] == -1:
                 if not(diff):
@@ -153,6 +194,8 @@ class Symbol_Creator:
         
         x = []
         y = []
+        
+        gaps = 0
         
         idx = {col:i+1 for i, col in enumerate(df.columns)}
         for r in df.itertuples():
@@ -202,10 +245,10 @@ class Symbol_Creator:
     If pin type is in or name contains IN, then left side. Else right side.
     - df [dataframe]: csv as pandas df with pin type and label.
     - cond_list [list of strs]: each string in format to control which side
-        operator ptype method string side
+        'operator ptype method string side'. Example: 'not IN sw OUT R'
             operator: is, not (specifies not ptype. Ex: 'not IN' means any ptype except IN])
             ptype: any, IN, OUT, BI, TRI, ANALOG, POWER, etc.
-            method: startswith 'sw', endswith 'ew', contains 'c', set for all pin names 'all ptype' ex: 'is IN all IN L' (sets all input pins to the left)
+            method: startswith 'sw', endswith 'ew', contains 'c', set for all pin names 'all ptype' ex: 'is IN all IN L' (sets all input pins to the left), equals 'eq'
             string: part of text you want to analyze in the pin label. Example: 'PAD'
             side: Left or Right
         note: items at the end of the list take highest priority
@@ -242,6 +285,9 @@ class Symbol_Creator:
                         elif mt == 'c':
                             if t in lbl:
                                 side[i] = s    
+                        elif mt == 'eq':
+                            if t == lbl:
+                                side[i] = s
                         elif mt == 'all':
                             side[i] = s
                 elif op == 'not':
@@ -255,10 +301,13 @@ class Symbol_Creator:
                         elif mt == 'c':
                             if t in lbl:
                                 side[i] = s
+                        elif mt == 'eq':
+                            if t == lbl:
+                                side[i] = s
                         elif mt == 'all':
                             side[i] = s
                                 
-        df['Side'] = side
+        df['Side'] = [side_dict[v] for v in side]
         return df 
         
     def symbol_from_csv(self, csv_file, symbol_name, pin_len = 300, box_margin=100, cond_list=None):    
@@ -269,7 +318,7 @@ class Symbol_Creator:
         # If csv doesn't have Inverted Column, then create it
         if not('Inverted' in df.columns.values):
             df = self.predict_inverted_to_df(df)
-        if not('Side' in df.column.values):
+        if not('Side' in df.columns.values):
             if cond_list == None:
                 cond_list = self.default_cond_list
             df = self.predict_side_to_df(df, cond_list)
