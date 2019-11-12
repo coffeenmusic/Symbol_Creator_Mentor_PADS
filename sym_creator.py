@@ -310,7 +310,36 @@ class Symbol_Creator:
         df['Side'] = [side_dict[v] for v in side]
         return df 
         
-    def symbol_from_csv(self, csv_file, symbol_name, pin_len = 300, box_margin=100, cond_list=None):    
+    def symbol_from_count(self, count, pin_len = 300, box_margin=100):
+        symbol = Symbol()
+        
+        w = self.estimate_box_width([str(i) for i in range(1, count + 1)])
+        h = math.ceil(count/2)*100 + box_margin
+        print('{}x{}'.format(w, h))
+        
+        x = 0
+        y = 0
+        side = 'Left'
+        t_dict = {'Left': 'IN', 'Right': 'OUT'}
+        for i in range(1, count + 1):
+            symbol.add_pin(i, x, y, side, False, i, str(i), t_dict[side])
+            y += 100
+            if i >= count/2 and side=='Left':
+                side = 'Right'
+                y = 0
+                x += w + 2*pin_len
+                
+        symbol.add_box(pin_len, -box_margin, w, h)  
+        self.sym_str_list = symbol.get_symbol_str_list()
+    
+    """
+    Create a Mentor symbol file from a csv with minimum 'Pin Label','Pin Number','Pin Type' and optional 'Side' & 'Inverted'
+        - csv_file [str]: file name of csv to import
+        - pin_len [int]: all pins will be set to this length in mils
+        - box_margin [int]: amount to extend past first and last pin on the y axis in mils
+        - cond_list [list of strs]: Overwrite default conditions which define pin order and spacing
+    """
+    def symbol_from_csv(self, csv_file, pin_len = 300, box_margin=100, cond_list=None):    
         # Import CSV
         df = pd.read_csv(csv_file, delimiter=';')
         df = self.get_diff_pairs(df)
@@ -329,7 +358,7 @@ class Symbol_Creator:
         df = self.get_coordinates(df, w, pin_len=pin_len)
         
         h = max(df.y.values) + box_margin*2
-        print('{}x{}'.format(w, h))
+        print('Symbol Size: {}x{} [mils]'.format(w, h))
         
         symbol = Symbol()
         idx = {col:i+1 for i, col in enumerate(df.columns)}
