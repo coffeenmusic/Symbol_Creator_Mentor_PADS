@@ -214,6 +214,7 @@ class Symbol_Creator:
                 gaps = 0
             
             gaps += gap*100
+            
             x += [0 if side == side_dict['Left'] else w + pin_len*2]
             y += [sort*100 + gaps]
             
@@ -382,7 +383,45 @@ class Symbol_Creator:
         
         self.sym_str_list = symbol.get_symbol_str_list()
         
+        self.symbol = symbol
+        
     def export_symbol(self):
         f = open(os.path.join(self.out_dir, self.out_symbol_name) + '.1', 'w')
         self.write_str_list(f, self.sym_str_list)
         f.close()
+    
+    """
+    Import a mentor pads symbol file in to Symbol class 
+        - file_path [str]: path to symbol including symbol name
+    """
+    def import_symbol(self, file_path):
+        sym = Symbol()
+        NEWPIN = False # Flag for new pin line in symbol file
+        prev_header = None
+        pin_cnt = 0
+        pin_list = [] # Holds all pin objects
+        
+        # Holds all properties for each individual pin, then parses it once all lines are found
+        pin_str_list = []
+
+        with open(file_path, 'r') as sym_file:
+            for l in sym_file:
+                if l.split()[0] in sym.sym_headers: # Symbol Propery Headers
+                    sym.parse_sym(l)
+                elif l.startswith('P '): # Pin Property
+                    if pin_cnt > 0:
+                        pin_list += [sym.parse_pin(pin_str_list)]
+                    NEWPIN = True
+                    pin_str_list = [l] # Reset List on each new pin
+                    pin_cnt += 1
+                elif NEWPIN:
+                    pin_str_list += [l]
+                    if pin_cnt > 0:
+                        pass
+                    
+                if l.startswith('|GRPHSTL'):
+                    pass # TODO: add graphic style and font to previous properties
+                prev_header = l.split()[0]
+                
+        self.sym_str_list = sym.get_symbol_str_list()   
+        return sym

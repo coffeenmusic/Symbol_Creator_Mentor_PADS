@@ -46,7 +46,7 @@ if cmd == 'import':
     creator = Symbol_Creator(out_dir=out_dir, out_symbol_name=symbol_name)
     creator.symbol_from_csv(in_file)
     creator.export_symbol()
-if cmd == 'new':
+elif cmd == 'new':
     count = int(in_file)
     creator = Symbol_Creator(out_dir=out_dir, out_symbol_name=symbol_name)
     creator.symbol_from_count(count) # in_file contains count
