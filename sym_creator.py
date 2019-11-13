@@ -14,10 +14,10 @@ class Symbol_Creator:
     def __init__(self, out_dir='', out_symbol_name='export'):
         self.out_dir = out_dir
         self.out_symbol_name = out_symbol_name
-        self.create_default_conditions()
+        self.__create_default_conditions()
     
     # Default conditional arguments that define which side pins fall on
-    def create_default_conditions(self):
+    def __create_default_conditions(self):
         cond_list = ['not IN sw OUT R', 'not IN ew OUT R', 'not IN sw IN L', 'is IN all IN L', 'is OUT all OUT R']
         
         # Starts With substring, any pin type
@@ -36,13 +36,13 @@ class Symbol_Creator:
         right = ['SNS','VSNS']
         cond_list += ['is any eq ' + v + ' R' for v in right]
         
-        self.default_cond_list = cond_list
+        self._default_cond_list = cond_list
     
     """
     f: open file to write symbol data to
     str_list [list]: a list where each new item is a string corresponding to a line in the symbol file
     """
-    def write_str_list(self, f, str_list):
+    def __write_str_list(self, f, str_list):
         for s in str_list:
             f.write(s)
             f.write('\n') 
@@ -52,16 +52,16 @@ class Symbol_Creator:
     lbl_list: list of all pin labels
     lbl_size: label size in mils
     """
-    def estimate_box_width(self, lbl_list, lbl_size=100):
+    def __estimate_box_width(self, lbl_list, lbl_size=100):
         k = 22/38 # Rough estimate to be improved later if time
         max_w = max([len(l) for l in lbl_list])
         return math.ceil((int((max_w*k + 1)*2))/3)*3 * 100
 
-    def estimate_box_height(self, count):
+    def __estimate_box_height(self, count):
         return (math.ceil(count/2) + 2) * 100
     
     # From pins in the imported dataframe, find pins that share the same name minus the trailing _N or _P
-    def get_diff_pairs(self, df):
+    def __get_diff_pairs(self, df):
         diff_pair_identifiers = ('_N', '_P')
     
         lbl_list = list(df['Pin Label'].values)
@@ -76,7 +76,7 @@ class Symbol_Creator:
     """
     Get signals that should be grouped together. Looks for matching names that end in numeric values
     """    
-    def get_groups(self, df):
+    def __get_groups(self, df):
         p = re.compile('[a-zA-Z]{2,}[0-9]{1,}')
         matches = []
         for v in df['Pin Label'].values:
@@ -100,9 +100,9 @@ class Symbol_Creator:
     - df [DataFrame]: full csv as dataframe
     returns: sorted dataframe
     """
-    def sort_pin_df(self, df):
+    def __sort_pin_df(self, df):
         sort = ['Side', 'PWR', 'NC', 'PAD', 'GND', 'group', 'Diff', 'INV', 'Pin Number']
-        df = self.get_groups(df)
+        df = self.__get_groups(df)
         
         nc = []
         pad = []
@@ -144,7 +144,7 @@ class Symbol_Creator:
     
     # Adds gaps between pins for given definition below
     # Setting a gap for a pin means the gap occurs below the pin
-    def get_gaps(self, df):
+    def __get_gaps(self, df):
         gap_list = []
         prev_diff = False
         gaps = np.zeros((len(df)))
@@ -188,9 +188,9 @@ class Symbol_Creator:
         
         return df
         
-    def get_coordinates(self, df, w, pin_len=300):
-        df = self.sort_pin_df(df)
-        df = self.get_gaps(df)
+    def __get_coordinates(self, df, w, pin_len=300):
+        df = self.__sort_pin_df(df)
+        df = self.__get_gaps(df)
         
         x = []
         y = []
@@ -228,7 +228,7 @@ class Symbol_Creator:
     - df [dataframe]: csv as pandas df with pin labels.
     returns: dataframe
     """
-    def predict_inverted_to_df(self, df):
+    def __predict_inverted_to_df(self, df):
         al = Pin().active_low_identifiers
         inv = [False]*len(df)
         
@@ -255,8 +255,7 @@ class Symbol_Creator:
         note: items at the end of the list take highest priority
     returns: dataframe with addition of side column
     """
-    def predict_side_to_df(self, df, cond_list):
-        side_dict = Pin().side_dict
+    def __predict_side_to_df(self, df, cond_list):
         cond2side = {'L':'Left', 'R':'Right', 'T':'Top', 'B':'Bottom'} # convert condition_list script sides to full word
         side = ['Left']*len(df)
         
@@ -314,7 +313,7 @@ class Symbol_Creator:
     def symbol_from_count(self, count, pin_len = 300, box_margin=100):
         symbol = Symbol()
         
-        w = self.estimate_box_width([str(i) for i in range(1, count + 1)])
+        w = self.__estimate_box_width([str(i) for i in range(1, count + 1)])
         h = math.ceil(count/2)*100 + box_margin
         print('{}x{}'.format(w, h))
         
@@ -343,20 +342,20 @@ class Symbol_Creator:
     def symbol_from_csv(self, csv_file, pin_len = 300, box_margin=100, cond_list=None):    
         # Import CSV
         df = pd.read_csv(csv_file, delimiter=';')
-        df = self.get_diff_pairs(df)
+        df = self.__get_diff_pairs(df)
         
         # If csv doesn't have Inverted Column, then create it
         if not('Inverted' in df.columns.values):
-            df = self.predict_inverted_to_df(df)
+            df = self.__predict_inverted_to_df(df)
         if not('Side' in df.columns.values):
             if cond_list == None:
-                cond_list = self.default_cond_list
-            df = self.predict_side_to_df(df, cond_list)
+                cond_list = self._default_cond_list
+            df = self.__predict_side_to_df(df, cond_list)
         
-        w = self.estimate_box_width(list(df['Pin Label'].values))
+        w = self.__estimate_box_width(list(df['Pin Label'].values))
         
         # Get Coordinates
-        df = self.get_coordinates(df, w, pin_len=pin_len)
+        df = self.__get_coordinates(df, w, pin_len=pin_len)
         
         h = max(df.y.values) + box_margin*2
         print('Symbol Size: {}x{} [mils]'.format(w, h))
@@ -383,11 +382,11 @@ class Symbol_Creator:
         
         self.sym_str_list = symbol.get_symbol_str_list()
         
-        self.symbol = symbol
+        self.Symbol = symbol
         
     def export_symbol(self):
         f = open(os.path.join(self.out_dir, self.out_symbol_name) + '.1', 'w')
-        self.write_str_list(f, self.sym_str_list)
+        self.__write_str_list(f, self.sym_str_list)
         f.close()
     
     """
@@ -410,7 +409,7 @@ class Symbol_Creator:
                     sym.parse_sym(l)
                 elif l.startswith('P '): # Pin Property
                     if pin_cnt > 0:
-                        pin_list += [sym.parse_pin(pin_str_list)]
+                        pin_list += [sym.set_pin_from_str_list(pin_str_list)]
                     NEWPIN = True
                     pin_str_list = [l] # Reset List on each new pin
                     pin_cnt += 1

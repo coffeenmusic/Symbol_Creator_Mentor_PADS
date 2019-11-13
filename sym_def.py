@@ -161,35 +161,32 @@ class Font:
         return ' '.join([str(vals[i]) for i in range(len(vals))])
         
 class Property:
-    idx = {'hdr': 0, 'x': 1, 'y': 2, 'size': 3, 'rotation': 4, 'justification': 5, 'visible': 6, 'value': 7}
+    _idx = {'hdr': 0, 'x': 1, 'y': 2, 'size': 3, 'rotation': 4, 'justification': 5, 'visible': 6, 'value': 7}
     just_dict = {'Upper Left': 1, 'Middle Left': 2, 'Lower Left': 3, 'Upper Center': 4, 'Middle Center': 5, 'Lower Center': 6, 'Upper Right': 7, 'Middle Right': 8, 'Lower Right': 9}
-    #rotation_dict = {0: '0', 1: '90', 2: '180', 3: '270'}
     rotation_dict = {'0': 0, '90': 1, '180': 2, '270': 3}
     vis_dict = {'Hidden': 0, 'Hidden-wProperty': 2, 'Visible': 3, 'Visible-wProperty': 4}
     
     def __init__(self):
-        self.idx2val = {v:k for k, v in self.idx.items()}
-        self.rot_idx2val = {v:k for k, v in self.rotation_dict.items()}
-        self.vis_idx2val = {v:k for k, v in self.vis_dict.items()}
-        self.just_idx2val = {v:k for k, v in self.just_dict.items()}
+        self._idx2val = {v:k for k, v in self._idx.items()}
+        self._rot_idx2val = {v:k for k, v in self.rotation_dict.items()}
+        self._vis_idx2val = {v:k for k, v in self.vis_dict.items()}
+        self._just_idx2val = {v:k for k, v in self.just_dict.items()}
     
     def set_property_from_str(self, line_str, identifier):
         # Add = sign to identifier if line_str has it, but identifier doesn't so value is assigned correctly
-        if '=' in ' '.join(line_str.split()[self.idx['value']:]) and not('=' in identifier):
+        if '=' in ' '.join(line_str.split()[self._idx['value']:]) and not('=' in identifier):
             identifier += '='
             
         vals = line_str.split()
         
-        self.hdr = vals[self.idx['hdr']]
-        self.x = int(vals[self.idx['x']])
-        self.y = int(vals[self.idx['y']])
-        self.size = int(vals[self.idx['size']])
-        self.rotation = self.rot_idx2val[int(vals[self.idx['rotation']])]
-        self.justification = self.just_idx2val[int(vals[self.idx['justification']])]
-        #self.justification = vals[self.idx['justification']]
-        self.visible = self.vis_idx2val[int(vals[self.idx['visible']])]
-        #self.visible = vals[self.idx['visible']]
-        self.value = ' '.join(vals[self.idx['value']:])[len(identifier):] # Account for spaces in property value
+        self.hdr = vals[self._idx['hdr']]
+        self.x = int(vals[self._idx['x']])
+        self.y = int(vals[self._idx['y']])
+        self.size = int(vals[self._idx['size']])
+        self.rotation = self._rot_idx2val[int(vals[self._idx['rotation']])]
+        self.justification = self._just_idx2val[int(vals[self._idx['justification']])]
+        self.visible = self._vis_idx2val[int(vals[self._idx['visible']])]
+        self.value = ' '.join(vals[self._idx['value']:])[len(identifier):] # Account for spaces in property value
         self.property = identifier.split('=')[0]
     
     """
@@ -215,28 +212,25 @@ class Property:
         self.y = mils_to_units(y)
         self.size = mils_to_units(size)
         self.rotation = rot
-        #self.rotation = self.rotation_dict[rot]
         self.justification = just
-        #self.justification = self.just_dict[just]
         self.visible = vis
-        #self.visible = self.vis_dict[vis]
         self.value = val
         self.property = prop
         
     def get_str(self):
         vals = {0: self.hdr, 
-            self.idx['x']: self.x,
-            self.idx['y']: self.y,
-            self.idx['size']: self.size,
-            self.idx['rotation']: self.rotation_dict[self.rotation],
-            self.idx['justification']: self.just_dict[self.justification],
-            self.idx['visible']: self.vis_dict[self.visible],
-            self.idx['value']: self.property+'='+str(self.value)}
+            self._idx['x']: self.x,
+            self._idx['y']: self.y,
+            self._idx['size']: self.size,
+            self._idx['rotation']: self.rotation_dict[self.rotation],
+            self._idx['justification']: self.just_dict[self.justification],
+            self._idx['visible']: self.vis_dict[self.visible],
+            self._idx['value']: self.property+'='+str(self.value)}
             
         return ' '.join([str(vals[i]) for i in range(len(vals))])
         
 class PinName(Property):
-    idx = {'hdr': 0, 'x': 1, 'y': 2, 'size': 3, 'rotation': 4, 'justification': 5, 'unk': 6, 'visible': 7, 'unk2': 8, 'value': 9} # Line row values to string index
+    _idx = {'hdr': 0, 'x': 1, 'y': 2, 'size': 3, 'rotation': 4, 'justification': 5, 'unk': 6, 'visible': 7, 'unk2': 8, 'value': 9} # Line row values to string index
     vis_dict = {'Hidden': 0, 'Visible': 1}
     
     def __init__(self):
@@ -249,49 +243,47 @@ class PinName(Property):
         super().set_property('L', '', x, y, size, rot, just, vis, val)
         
     def get_str(self):
-        vals = {self.idx['hdr']: 'L', 
-            self.idx['x']: self.x,
-            self.idx['y']: self.y,
-            self.idx['size']: self.size,
-            self.idx['rotation']: self.rotation_dict[self.rotation],
-            self.idx['justification']: self.just_dict[self.justification],
-            self.idx['visible']: self.vis_dict[self.visible],
-            self.idx['value']: str(self.value),
-            self.idx['unk']: 0,
-            self.idx['unk2']: 0}
+        vals = {self._idx['hdr']: 'L', 
+            self._idx['x']: self.x,
+            self._idx['y']: self.y,
+            self._idx['size']: self.size,
+            self._idx['rotation']: self.rotation_dict[self.rotation],
+            self._idx['justification']: self.just_dict[self.justification],
+            self._idx['visible']: self.vis_dict[self.visible],
+            self._idx['value']: str(self.value),
+            self._idx['unk']: 0,
+            self._idx['unk2']: 0}
             
         return ' '.join([str(vals[i]) for i in range(len(vals))])
         
   
 class Pin:
-    idx = {'P': 0, 'id': 1, 'x1': 2, 'y1': 3, 'x2': 4, 'y2': 5, 'unk': 6, 'side': 7, 'inverted': 8} # Pin row to string index
-    side_dict = {'Top': 0, 'Bottom': 1, 'Left': 2, 'Right': 3}
-    inv_dict = {False: 0, 'False': 0, 'FALSE': 0, 'Inverted': 1, True: 1, 'True': 1, 'TRUE': 1} # Inverted
+    _idx = {'P': 0, 'id': 1, 'x1': 2, 'y1': 3, 'x2': 4, 'y2': 5, 'unk': 6, 'side': 7, 'inverted': 8} # Pin row to string index
+    _side_dict = {'Top': 0, 'Bottom': 1, 'Left': 2, 'Right': 3}
+    _inv_dict = {False: 0, 'False': 0, 'FALSE': 0, 'Inverted': 1, True: 1, 'True': 1, 'TRUE': 1} # Inverted
     pin_types = ['IN', 'OUT', 'BI', 'TRI', 'OCL', 'OEM', 'POWER', 'GROUND', 'ANALOG']
     active_low_identifiers = ('_N', '#') # I know there are more (not including). I'll leave that to someone else or some other time
     
     def __init__(self):
-        self.idx2val = {v:k for k, v in self.idx.items()}
-        self.side_idx2val = {v:k for k, v in self.side_dict.items()}
+        self._idx2val = {v:k for k, v in self._idx.items()}
+        self._side_idx2val = {v:k for k, v in self._side_dict.items()}
         
     def set_pin_from_str(self, line_str):
         vals = line_str.split()
         
-        self.pid = vals[self.idx['id']]
-        self.set_line_pos(vals[self.idx['x1']], vals[self.idx['x2']], vals[self.idx['y1']], vals[self.idx['y2']])
-        self.side = self.side_idx2val[int(vals[self.idx['side']])]
-        self.inverted = bool(int(vals[self.idx['inverted']]))
+        self.pid = vals[self._idx['id']]
+        self.set_line_pos(vals[self._idx['x1']], vals[self._idx['x2']], vals[self._idx['y1']], vals[self._idx['y2']])
+        self.side = self._side_idx2val[int(vals[self._idx['side']])]
+        self.inverted = bool(int(vals[self._idx['inverted']]))
     
     def set_pin(self, pid, x1, y1, x2, y2, side, inv, ptype):
         self.pid = pid
         self.set_line_pos(mils_to_units(x1), mils_to_units(x2), mils_to_units(y1), mils_to_units(y2))
-        #self.side = self.side_dict[side]
         self.side = side
-        #self.inverted = self.inv_dict[inv]
         self.inverted = inv
         self.set_pin_type(ptype)
         
-    def set_pin_type_str(self, line_str):
+    def set_pin_type_from_str(self, line_str):
         ptype = Property()
         ptype.set_property_from_str(line_str, 'PINTYPE=')
         self.Type = ptype
@@ -302,7 +294,7 @@ class Pin:
         p.set_property('A', 'PINTYPE', 0, 0, 100, 0, 'Middle Left', 'Hidden', val)
         self.Type = p
         
-    def set_pin_name_str(self, line_str):
+    def set_pin_name_from_str(self, line_str):
         name = PinName()
         name.set_property_from_str(line_str)
         self.Name = name
@@ -323,7 +315,7 @@ class Pin:
         name.set_property(lbl_x, lbl_y, 100, 0, just, 'Visible', val)
         self.Name = name
     
-    def set_pin_number_str(self, line_str):
+    def set_pin_number_from_str(self, line_str):
         num = Property()
         num.set_property_from_str(line_str, '#=')
         self.Number = num
@@ -378,15 +370,15 @@ class Pin:
     def get_str(self):
         x1, x2, y1, y2 = self.line_pos
         vals = {}        
-        vals[self.idx['P']] = 'P'
-        vals[self.idx['id']] = self.pid
-        vals[self.idx['x1']] = x1
-        vals[self.idx['y1']] = y1
-        vals[self.idx['x2']] = x2
-        vals[self.idx['y2']] = y2
-        vals[self.idx['unk']] = 0
-        vals[self.idx['side']] = self.side_dict[self.side]
-        vals[self.idx['inverted']] = self.inv_dict[self.inverted]
+        vals[self._idx['P']] = 'P'
+        vals[self._idx['id']] = self.pid
+        vals[self._idx['x1']] = x1
+        vals[self._idx['y1']] = y1
+        vals[self._idx['x2']] = x2
+        vals[self._idx['y2']] = y2
+        vals[self._idx['unk']] = 0
+        vals[self._idx['side']] = self._side_dict[self.side]
+        vals[self._idx['inverted']] = self._inv_dict[self.inverted]
         
         return ' '.join([str(vals[i]) for i in range(len(vals))])
         
@@ -412,8 +404,8 @@ class Pin:
         self.Number = number
     
     # ptype: PinType Object
-    def set_type(self, ptype):
-        self.Type = ptype
+    #def set_type(self, ptype):
+    #    self.Type = ptype
         
     def set_line_pos(self, x1, x2, y1, y2):
         self.line_pos = (int(x1), int(x2), int(y1), int(y2))
@@ -425,20 +417,20 @@ class Pin:
         
 class Symbol:
     pins = {}
-    boxes = []
-    sym_headers = ['K','|R','Y','U','b'] # All headers of the symbol file. This would exclude pin property headers
-    k_idx = {'name': 2}
-    d_idx = {'date': 1} # Date row indexes
-    u_idx = {'x': 1, 'y': 2, 'size': 3, 'rotation': 4, 'justification': 5, 'visible': 6, 'value': 7}
-    y_idx = {'value': 1}
-    symtype_to_idx = {'Composite': 0, 'Module': 1, 'Annotate': 3, 'Pin': 4, 'Border': 5}
-    vis_dict = {0: 'Hidden', 2: 'Hidden-wProperty', 3: 'Visible', 4: 'Visible-wProperty'}
-    sym_type = {0: 'Composite', 1: 'Module', 2: 'Pin', 4: 'Annotate', 5: 'Border'}
-    comp2refdes = {'IC': 'U?', 'Integrated Circuit': 'U?', 'Resistor': 'R?', 'Capacitor': 'C?', 'Inductor': 'L?', 
+    _sym_headers = ['K','|R','Y','U','b'] # All headers of the symbol file. This would exclude pin property headers
+    _k_idx = {'name': 2}
+    _d_idx = {'date': 1} # Date row indexes
+    _u_idx = {'x': 1, 'y': 2, 'size': 3, 'rotation': 4, 'justification': 5, 'visible': 6, 'value': 7}
+    _y_idx = {'value': 1}
+    _symtype_to_idx = {'Composite': 0, 'Module': 1, 'Annotate': 3, 'Pin': 4, 'Border': 5}
+    _sym_type_dict = {'Composite': 0, 'Module': 1, 'Pin': 2, 'Annotate': 4, 'Border': 5}
+    _comp2refdes = {'IC': 'U?', 'Integrated Circuit': 'U?', 'Resistor': 'R?', 'Capacitor': 'C?', 'Inductor': 'L?', 
     'Connector': 'J?', 'Diode': 'D?', 'Test Point': 'TP?', 'Ferrite Bead': 'FB?', 'Transformer': 'T?', 'XFMR': 'T?', 
     'Oscillator': 'Y?', 'LED': 'LD?', 'Transistor': 'Q?', 'Switch': 'SW?'}
     
-    def __init__(self, symbol_type='Module'):        
+    def __init__(self, symbol_type='Module'):       
+        self._sym_type_idx2val = {v:k for k, v in self._sym_type_dict.items()}
+    
         self.property_forward_pcb = None
         self.property_place = None
         self.property_pkg_type = None
@@ -448,7 +440,7 @@ class Symbol:
         self.property_refdes = None
         self.property_hetero = None
         
-        self.set_defaults()
+        self.__set_defaults()
         self.symbol_type = symbol_type
     
     """
@@ -473,7 +465,7 @@ class Symbol:
         box = Box()
         box.set_box(mils_to_units(x), mils_to_units(y), mils_to_units(x2), mils_to_units(y2))
         box.add_graphics(color, fill_style, line_style, line_width)
-        self.box = box
+        self.Box = box
         
         # Add refdes above box
         self.set_refdes(units_to_mils(box.x1), units_to_mils(box.y2))
@@ -486,21 +478,21 @@ class Symbol:
     def parse_sym(self, line_str):
         vals = line_str.split()
         if vals[0] == 'K':
-            self.name = vals[self.k_idx['name']]
+            self.name = vals[self._k_idx['name']]
         elif vals[0] == '|R':
-            self.save_date = vals[self.d_idx['date']]
+            self.save_date = vals[self._d_idx['date']]
         elif vals[0] == 'Y':
-            self.symbol_type = self.sym_type[int(vals[self.y_idx['value']])]
+            self.symbol_type = self._sym_type_idx2val[int(vals[self._y_idx['value']])]
         elif vals[0] == 'U':
-            self.parse_property(line_str)
+            self.__set_property_from_str(line_str)
         elif vals[0] == 'b':
             b = Box()
             b.set_box_from_str(line_str)
             b.add_graphics('Blue', 'Hollow', 'Solid', 1) # Temporary. Need to Import graphics from symbol file instead
-            self.box = b
+            self.Box = b
             
-    def parse_property(self, line_str):
-        identifier = ''.join(line_str.split()[self.u_idx['value']:]).split('=')[0]
+    def __set_property_from_str(self, line_str):
+        identifier = ''.join(line_str.split()[self._u_idx['value']:]).split('=')[0]
     
         prop = Property()
         prop.set_property_from_str(line_str, identifier)
@@ -525,37 +517,37 @@ class Symbol:
             self.property_name_placeholder = prop
         
     
-    def parse_pin(self, pin_str_list):
+    def set_pin_from_str_list(self, pin_str_list):
         p = Pin()
         for line_str in pin_str_list:
             if line_str.startswith('P '):
                 p.set_pin_from_str(line_str)
             elif line_str.startswith('L '):
-                p.set_pin_name_str(line_str)
+                p.set_pin_name_from_str(line_str)
             elif '#=' in line_str:
-                p.set_pin_number_str(line_str)
+                p.set_pin_number_from_str(line_str)
             elif 'PINTYPE=' in line_str:
-                p.set_pin_type_str(line_str)
+                p.set_pin_type_from_str(line_str)
         
         self.pins[p.Number.value] = p
         return p
         
-    def set_defaults(self):        
-        self.property_forward_pcb = self.get_default_property('FORWARD_PCB', 1)
-        self.property_place = self.get_default_property('PLACE', 'YES')
-        self.property_pkg_type = self.get_default_property('PKG_TYPE', 'PKG_TYPE')
-        self.property_device = self.get_default_property('DEVICE', 'DEVICE')
-        self.property_value = self.get_default_property('VALUE', 'VALUE', x=300, y=-200, vis='Visible')
-        self.property_pkg_style = self.get_default_property('PKG_STYLE', 'PKG_STL', x=300, y=-300, vis='Visible')
+    def __set_defaults(self):        
+        self.property_forward_pcb = self.__get_default_property('FORWARD_PCB', 1)
+        self.property_place = self.__get_default_property('PLACE', 'YES')
+        self.property_pkg_type = self.__get_default_property('PKG_TYPE', 'PKG_TYPE')
+        self.property_device = self.__get_default_property('DEVICE', 'DEVICE')
+        self.property_value = self.__get_default_property('VALUE', 'VALUE', x=300, y=-200, vis='Visible')
+        self.property_pkg_style = self.__get_default_property('PKG_STYLE', 'PKG_STL', x=300, y=-300, vis='Visible')
         
-    def set_refdes(self, box_min_x, box_max_y, component='IC'):
-        x = box_min_x + 100 # Add delta 100mil
-        y = box_max_y + 100 # Add delta 100mil
-        refdes = self.comp2refdes[component] # Ex: U? for Integrated Circuit
-        self.property_refdes = self.get_default_property('REFDES', refdes, x=x, y=y, vis='Visible', just='Upper Left')
+    def set_refdes(self, box_min_x, box_max_y, component='IC', delta_x=100, delta_y=100):
+        x = box_min_x + delta_x # Add delta 100mil
+        y = box_max_y + delta_y # Add delta 100mil
+        refdes = self._comp2refdes[component] # Ex: U? for Integrated Circuit
+        self.property_refdes = self.__get_default_property('REFDES', refdes, x=x, y=y, vis='Visible', just='Upper Left')
     
     # Get property object for one of the default symbol properties
-    def get_default_property(self, prop, val, hdr='U', x=0, y=0, size=90, rot=0, just='Middle Left', vis='Hidden'):
+    def __get_default_property(self, prop, val, hdr='U', x=0, y=0, size=90, rot=0, just='Middle Left', vis='Hidden'):
         p = Property()
         p.set_property(hdr, prop, x, y, size, rot, just, vis, val)
         return p
@@ -564,7 +556,7 @@ class Symbol:
     - font [Font object]: change default font for symbol properties
     returns: all symbol file's properties as a list of strings
     """
-    def get_property_str_list(self, font=None):
+    def _get_property_str_list(self, font=None):
         if font == None:
             font = Font()
             font_str = font.set_font('Sans Serif', 'Automatic')
@@ -593,38 +585,38 @@ class Symbol:
         return str_list_w_fonts
     
     # Returns all pin string rows in one concatenated list for the entire symbol
-    def get_pins_str_list(self):
+    def _get_pins_str_list(self):
         str_list = []
         for p in self.pins.values():
             str_list += p.get_str_list()
         return str_list
         
-    def get_box_str_list(self):
-        return self.box.get_str_list()
+    def _get_box_str_list(self):
+        return self.Box.get_str_list()
     
     # Some of the header definition is unknown Ex: V, K's int value, F Case, and D
-    def get_header_str_list(self):
+    def _get_header_str_list(self):
         hdr = ['V 54']
         hdr += ['K 33671749690 new_symbol']
         hdr += ['F Case']
         hdr += ['|R ' + datetime.datetime.now().strftime('%H:%M:%S_%m-%d-%y')]
         hdr += ['|BORDERTYPESUPPORT']
-        hdr += ['Y ' + str(self.symtype_to_idx[self.symbol_type])]
+        hdr += ['Y ' + str(self._symtype_to_idx[self.symbol_type])]
         hdr += ['D 0 0 2540000 2540000', 'Z 10', 'i 3', '|I 6']
         return hdr
     
-    def get_footer_str_list(self):
+    def _get_footer_str_list(self):
         return ['E']
         
     # returns a list of all text necessary to recreate a symbol file
     # this includes header, symbol properties, pins, fonts, graphics, and symbol box
     def get_symbol_str_list(self):
         str_list = []
-        str_list += self.get_header_str_list()
-        str_list += self.get_pins_str_list()
-        str_list += self.get_box_str_list()
-        str_list += self.get_property_str_list()
-        str_list += self.get_footer_str_list()
+        str_list += self._get_header_str_list()
+        str_list += self._get_pins_str_list()
+        str_list += self._get_box_str_list()
+        str_list += self._get_property_str_list()
+        str_list += self._get_footer_str_list()
         
         return str_list
         
