@@ -1,5 +1,6 @@
 *.1
 *.csv
+!import_example.csv
 Created
 Symbols
 MANIFEST

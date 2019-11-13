@@ -25,3 +25,4 @@ Example: `python run.py new new_symbol 20`
 - Currently only assumes IC type symbols that have a single bounding box
 - Import from csv doesn't currently allow for HETERO, but import from symbol does
 - Symbol files have graphics settings that will export, but are currently not imported from the Symbol import
+- Two csv files are accepted, a simple csv ('import_example.csv') that contains Pin Label, Pin Number, & Pin Type. This will create an output by assuming Side and Inverted. Also, a csv exported directly from Mentor Symbol editor is accepted. This file fully defines Side and Inverted. Pin y-position will be estimated via the Symbol_Creator classes conditional arguments.
