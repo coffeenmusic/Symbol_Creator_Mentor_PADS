@@ -1,3 +1,4 @@
+import os
 import sys
 import pandas as pd
 from sym_creator import Symbol_Creator
@@ -37,6 +38,8 @@ if arg_cnt >= 3:
 out_dir = ''
 if arg_cnt >= 4:
     out_dir = sys.argv[4]
+    if not(os.path.isdir(out_dir)):
+        os.mkdir(out_dir)
     
     
 if cmd == 'import':

@@ -424,3 +424,12 @@ class Symbol_Creator:
                 
         self.sym_str_list = sym.get_symbol_str_list()   
         return sym
+        
+    # # TODO: SPI, I2C, etc.
+    # def get_bus_signals(df):
+    #     pass
+    
+    #def PADS_csv_to_simple_csv(self, pads_csv, export_name='simple.csv'):
+    #    df = pd.read_csv(pads_csv, delimiter=';')
+    #    df = df.filter(['Pin Label', 'Pin Number', 'Pin Type'])
+    #    df.to_csv(export_name, index=False, sep=';')
