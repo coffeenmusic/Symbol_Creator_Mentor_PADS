@@ -49,7 +49,7 @@ class PolyLine:
             
         self.count = count
         
-        add_font(fnt_str)
+        self.add_font(fnt_str)
         
     def add_font(self, fnt_str):
         if not(fnt_str == None):
