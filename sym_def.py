@@ -179,6 +179,7 @@ class Font:
     
     def __init__(self):
         self.idx2val = {v:k for k, v in self.idx.items()}
+        self.font_idx2val = {v:k for k, v in self.font_dict.items()}
      
     """
     - font [str]: font string that is one of the Keys from font_dict
@@ -189,15 +190,25 @@ class Font:
         c = Color()
         c.set_color(color_str)
         
-        self.color = c
-        self.font = self.font_dict[font]
+        self.Color = c
+        #self.font = self.font_dict[font]
+        self.font = font
         return self.get_str()
-    
+        
+    def set_font_from_str(self, line_str):
+        vals = line_str.split()
+        
+        c = Color()
+        c.set_color_int(vals[self.idx['color']])
+        self.Color = c
+        
+        self.font = self.font_idx2val[int(vals[self.idx['type']])]
+        
     def get_str(self):
         vals = {}
         vals[0] = self.idx2val[0]
-        vals[self.idx['color']] = self.color.color_int
-        vals[self.idx['type']] = self.font
+        vals[self.idx['color']] = self.Color.color_int
+        vals[self.idx['type']] = self.font_dict[self.font]
         return ' '.join([str(vals[i]) for i in range(len(vals))])
         
 class Property:
@@ -213,8 +224,9 @@ class Property:
         self._just_idx2val = {v:k for k, v in self.just_dict.items()}
         
         self.GFX = None
+        self.Font = None
     
-    def set_property_from_str(self, line_str, identifier, gfx_str=None):
+    def set_property_from_str(self, line_str, identifier, gfx_str=None, fnt_str=None):
         # Add = sign to identifier if line_str has it, but identifier doesn't so value is assigned correctly
         if '=' in ' '.join(line_str.split()[self._idx['value']:]) and not('=' in identifier):
             identifier += '='
@@ -232,6 +244,13 @@ class Property:
         self.property = identifier.split('=')[0]
         
         self.set_gfx_from_str(gfx_str)
+        self.set_fnt_from_str(fnt_str)
+        
+    def set_fnt_from_str(self, line_str):
+        if not(line_str == None):
+            f = Font()
+            f.set_font_from_str(line_str)
+            self.Font = f
         
     def set_gfx_from_str(self, line_str):
         if not(line_str == None):
@@ -286,8 +305,8 @@ class PinName(Property):
     def __init__(self):
         super().__init__()
         
-    def set_property_from_str(self, line_str, gfx_str=None):
-        super().set_property_from_str(line_str, '', gfx_str=gfx_str)
+    def set_property_from_str(self, line_str, gfx_str=None, fnt_str=None):
+        super().set_property_from_str(line_str, '', gfx_str=gfx_str, fnt_str=fnt_str)
         
     def set_property(self, x, y, size, rot, just, vis, val):
         super().set_property('L', '', x, y, size, rot, just, vis, val)
@@ -318,6 +337,8 @@ class Pin:
         self._idx2val = {v:k for k, v in self._idx.items()}
         self._side_idx2val = {v:k for k, v in self._side_dict.items()}
         
+        self.GFX = None
+        
     def set_pin_from_str(self, line_str, gfx_str=None, fnt_str=None):
         vals = line_str.split()
         
@@ -338,9 +359,9 @@ class Pin:
         self.inverted = inv
         self.set_pin_type(ptype)
         
-    def set_pin_type_from_str(self, line_str):
+    def set_pin_type_from_str(self, line_str, fnt_str=None):
         ptype = Property()
-        ptype.set_property_from_str(line_str, 'PINTYPE=')
+        ptype.set_property_from_str(line_str, 'PINTYPE=', fnt_str=fnt_str)
         self.Type = ptype
         
     def set_pin_type(self, val):
@@ -349,9 +370,9 @@ class Pin:
         p.set_property('A', 'PINTYPE', 0, 0, 100, 0, 'Middle Left', 'Hidden', val)
         self.Type = p
         
-    def set_pin_name_from_str(self, line_str, gfx_str=None):
+    def set_pin_name_from_str(self, line_str, gfx_str=None, fnt_str=None):
         name = PinName()
-        name.set_property_from_str(line_str, gfx_str=gfx_str)
+        name.set_property_from_str(line_str, gfx_str=gfx_str, fnt_str=fnt_str)
         self.Name = name
         
     def set_pin_name(self, x, y, side, val):
@@ -448,8 +469,12 @@ class Pin:
         str_list += [Font().set_font(name_font, name_color)]
         if not(self.Name.GFX == None):
             str_list += [self.Name.GFX.get_str()]
+        if not(self.Name.Font == None):
+            str_list += [self.Name.Font.get_str()]
         
         str_list += [self.get_pintype_str()]
+        if not(self.Type.Font == None):
+            str_list += [self.Type.Font.get_str()]
         
         str_list += [self.Number.get_str()]
         str_list += [Font().set_font(num_font, num_color)]
@@ -589,6 +614,7 @@ class Symbol:
         nxt_hdr = ''
         for i, line_str in enumerate(pin_str_list):
             gfx_str = None
+            fnt_str = None
             
             # Get next header
             if i < len(pin_str_list) - 1:
@@ -603,11 +629,15 @@ class Symbol:
             elif line_str.startswith('L '):
                 if nxt_hdr.startswith('|GRPHSTL'):
                     gfx_str = pin_str_list[i+1]
-                p.set_pin_name_from_str(line_str, gfx_str=gfx_str)
+                elif nxt_hdr.startswith('|FNTSTL'):
+                    fnt_str = pin_str_list[i+1]
+                p.set_pin_name_from_str(line_str, gfx_str=gfx_str, fnt_str=fnt_str)
             elif '#=' in line_str:
                 p.set_pin_number_from_str(line_str)
             elif 'PINTYPE=' in line_str:
-                p.set_pin_type_from_str(line_str)
+                if nxt_hdr.startswith('|FNTSTL'):
+                    fnt_str = pin_str_list[i+1]
+                p.set_pin_type_from_str(line_str, fnt_str=fnt_str)
             
         
         self.pins[p.Number.value] = p
