@@ -442,7 +442,7 @@ class Pin:
         self.set_pin_name(x, y, side, name)
         self.set_pin_number(x, y, side, number)
     
-    # Gets string for pin row. Ex: 
+    # Gets string for pin row. Ex: 'P 364 0 5588000 762000 5588000 0 2 1'
     def get_str(self):
         x1, x2, y1, y2 = self.line_pos
         vals = {}        
@@ -460,22 +460,27 @@ class Pin:
         
     def get_str_list(self, name_font='Sans Serif', num_font='Sans Serif', name_color='Dark Blue', num_color='Automatic'):
         str_list = []
-        str_list += [self.get_str()]
         
+        # Pin
+        str_list += [self.get_str()]
         if not(self.GFX == None):
             str_list += [self.GFX.get_str()]
-            
+         
+        # Pin Name
         str_list += [self.Name.get_str()]
-        str_list += [Font().set_font(name_font, name_color)]
         if not(self.Name.GFX == None):
             str_list += [self.Name.GFX.get_str()]
         if not(self.Name.Font == None):
             str_list += [self.Name.Font.get_str()]
+        else:
+            str_list += [Font().set_font(name_font, name_color)]
         
+        # Pin Type
         str_list += [self.get_pintype_str()]
         if not(self.Type.Font == None):
             str_list += [self.Type.Font.get_str()]
         
+        # Pin Number
         str_list += [self.Number.get_str()]
         str_list += [Font().set_font(num_font, num_color)]
         
