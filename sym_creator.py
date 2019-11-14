@@ -398,7 +398,6 @@ class Symbol_Creator:
         NEWPIN = False # Flag for new pin line in symbol file
         prev_header = None
         pin_cnt = 0
-        pin_list = [] # Holds all pin objects
         
         # Holds all properties for each individual pin, then parses it once all lines are found
         pin_str_list = []
@@ -409,20 +408,23 @@ class Symbol_Creator:
                     sym.parse_sym(l)
                 elif l.startswith('P '): # Pin Property
                     if pin_cnt > 0:
-                        pin_list += [sym.set_pin_from_str_list(pin_str_list)]
+                        sym.set_pin_from_str_list(pin_str_list)
                     NEWPIN = True
                     pin_str_list = [l] # Reset List on each new pin
                     pin_cnt += 1
+                elif l.strip() == 'E':
+                    sym.set_pin_from_str_list(pin_str_list)
                 elif NEWPIN:
                     pin_str_list += [l]
                     if pin_cnt > 0:
-                        pass
+                        pass                
                     
                 if l.startswith('|GRPHSTL'):
                     pass # TODO: add graphic style and font to previous properties
                 prev_header = l.split()[0]
                 
-        self.sym_str_list = sym.get_symbol_str_list()   
+        self.sym_str_list = sym.get_symbol_str_list()  
+        self.Symbol = sym
         return sym
         
     # # TODO: SPI, I2C, etc.

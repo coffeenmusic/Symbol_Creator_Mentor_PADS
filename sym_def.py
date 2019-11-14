@@ -9,6 +9,49 @@ def mils_to_units(mils):
     
 def units_to_mils(units):
     return (units/254000)*100
+    
+class PolyLine:
+    idx = {'l': 0, 'count': 1, 'coord-start': 2}
+    coords = {}
+    
+    def __init__(self):
+        self.idx2val = {v:k for k, v in self.idx.items()}
+        
+        self.count = 0
+        
+    def get_str(self):
+        vals = {}
+        vals[self.idx['l']] = 'l'
+        vals[self.idx['count']] = self.count
+        
+        cs = self.idx['coord-start']
+        for i, coord in enumerate(self.coords.values(), int(cs/2)):
+            x = coord['x']
+            y = coord['y']
+            vals[i*2] = x
+            vals[i*2 + 1] = y
+            
+        return ' '.join([str(vals[i]) for i in range(len(vals))])
+        
+    def set_polyline_from_str(self, line_str):
+        vals = line_str.split()
+        
+        assert vals[0] == 'l', 'Incorrect header for polyline: ' + line_str
+        
+        count = int(vals[self.idx['count']])
+        cs = self.idx['coord-start'] # idx where first x coordinate starts
+        
+        for i in range(cs, (cs+count-1)*2, 2):
+            x = int(vals[i])
+            y = int(vals[i+1])
+            self.add_coord(x, y)
+            
+        self.count = count
+        
+    def add_coord(self, x, y):
+        self.coords[self.count] = {'x': x, 'y': y}
+        self.count += 1
+        
 
 class Box:
     idx = {'b': 0, 'x1': 1, 'y1': 2, 'x2': 3, 'y2': 4}
@@ -507,7 +550,7 @@ class Pin:
         
 class Symbol:
     pins = {}
-    sym_headers = ['V','K','|R','Y','U','b'] # All headers of the symbol file. This would exclude pin property headers
+    sym_headers = ['V','K','|R','Y','U','b','l'] # All headers of the symbol file. This would exclude pin property headers
     _v_idx = {'value': 1}
     _k_idx = {'name': 2}
     _d_idx = {'date': 1} # Date row indexes
@@ -525,6 +568,8 @@ class Symbol:
         self._units_idx2val = {v:k for k, v in self._units_dict.items()}
     
         self.units = 'Base'
+        self.lines = []
+        self.Box = None
         self.property_forward_pcb = None
         self.property_place = None
         self.property_pkg_type = None
@@ -586,6 +631,11 @@ class Symbol:
             self.Box = b
         elif vals[0] == 'V':
             self.units = self._units_idx2val[int(vals[self._v_idx['value']])]
+        elif vals[0] == 'l':
+            l = PolyLine()
+            l.set_polyline_from_str(line_str)
+            self.lines += [l]
+            
             
     def __set_property_from_str(self, line_str):
         identifier = ''.join(line_str.split()[self._u_idx['value']:]).split('=')[0]
@@ -708,7 +758,16 @@ class Symbol:
         return str_list
         
     def _get_box_str_list(self):
-        return self.Box.get_str_list()
+        if self.Box == None:
+            return []
+        else:
+            return self.Box.get_str_list()
+            
+    def _get_polyline_str_list(self):
+        str_list = []
+        for l in self.lines:
+            str_list += [l.get_str()]
+        return str_list        
     
     # Some of the header definition is unknown Ex: V, K's int value, F Case, and D
     def _get_header_str_list(self):
@@ -730,6 +789,7 @@ class Symbol:
         str_list = []
         str_list += self._get_header_str_list()
         str_list += self._get_pins_str_list()
+        str_list += self._get_polyline_str_list()
         str_list += self._get_box_str_list()
         str_list += self._get_property_str_list()
         str_list += self._get_footer_str_list()
