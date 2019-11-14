@@ -404,7 +404,9 @@ class Symbol_Creator:
 
         with open(file_path, 'r') as sym_file:
             for l in sym_file:
-                if l.split()[0] in sym.sym_headers: # Symbol Propery Headers
+                if l.startswith('Q'):
+                    continue # I don't yet know what Q does and it doesn't seem to matter if I ignore it
+                elif l.split()[0] in sym.sym_headers: # Symbol Propery Headers
                     sym.parse_sym(l)
                 elif l.startswith('P '): # Pin Property
                     if pin_cnt > 0:
