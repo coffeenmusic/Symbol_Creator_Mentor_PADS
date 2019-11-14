@@ -211,8 +211,10 @@ class Property:
         self._rot_idx2val = {v:k for k, v in self.rotation_dict.items()}
         self._vis_idx2val = {v:k for k, v in self.vis_dict.items()}
         self._just_idx2val = {v:k for k, v in self.just_dict.items()}
+        
+        self.GFX = None
     
-    def set_property_from_str(self, line_str, identifier):
+    def set_property_from_str(self, line_str, identifier, gfx_str=None):
         # Add = sign to identifier if line_str has it, but identifier doesn't so value is assigned correctly
         if '=' in ' '.join(line_str.split()[self._idx['value']:]) and not('=' in identifier):
             identifier += '='
@@ -228,6 +230,14 @@ class Property:
         self.visible = self._vis_idx2val[int(vals[self._idx['visible']])]
         self.value = ' '.join(vals[self._idx['value']:])[len(identifier):] # Account for spaces in property value
         self.property = identifier.split('=')[0]
+        
+        self.set_gfx_from_str(gfx_str)
+        
+    def set_gfx_from_str(self, line_str):
+        if not(line_str == None):
+            g = GFX()
+            g.set_gfx_from_str(line_str)
+            self.GFX = g
     
     """
     Set Property class variables via function args
@@ -276,8 +286,8 @@ class PinName(Property):
     def __init__(self):
         super().__init__()
         
-    def set_property_from_str(self, line_str):
-        super().set_property_from_str(line_str, '')
+    def set_property_from_str(self, line_str, gfx_str=None):
+        super().set_property_from_str(line_str, '', gfx_str=gfx_str)
         
     def set_property(self, x, y, size, rot, just, vis, val):
         super().set_property('L', '', x, y, size, rot, just, vis, val)
@@ -339,9 +349,9 @@ class Pin:
         p.set_property('A', 'PINTYPE', 0, 0, 100, 0, 'Middle Left', 'Hidden', val)
         self.Type = p
         
-    def set_pin_name_from_str(self, line_str):
+    def set_pin_name_from_str(self, line_str, gfx_str=None):
         name = PinName()
-        name.set_property_from_str(line_str)
+        name.set_property_from_str(line_str, gfx_str=gfx_str)
         self.Name = name
         
     def set_pin_name(self, x, y, side, val):
@@ -436,6 +446,8 @@ class Pin:
             
         str_list += [self.Name.get_str()]
         str_list += [Font().set_font(name_font, name_color)]
+        if not(self.Name.GFX == None):
+            str_list += [self.Name.GFX.get_str()]
         
         str_list += [self.get_pintype_str()]
         
@@ -576,6 +588,8 @@ class Symbol:
         
         nxt_hdr = ''
         for i, line_str in enumerate(pin_str_list):
+            gfx_str = None
+            
             # Get next header
             if i < len(pin_str_list) - 1:
                 nxt_hdr = pin_str_list[i+1].split()[0]
@@ -583,12 +597,13 @@ class Symbol:
                 nxt_hdr = ''
                 
             if line_str.startswith('P '):
-                gfx_str = None
                 if nxt_hdr.startswith('|GRPHSTL'):
                     gfx_str = pin_str_list[i+1]
                 p.set_pin_from_str(line_str, gfx_str=gfx_str)
             elif line_str.startswith('L '):
-                p.set_pin_name_from_str(line_str)
+                if nxt_hdr.startswith('|GRPHSTL'):
+                    gfx_str = pin_str_list[i+1]
+                p.set_pin_name_from_str(line_str, gfx_str=gfx_str)
             elif '#=' in line_str:
                 p.set_pin_number_from_str(line_str)
             elif 'PINTYPE=' in line_str:
