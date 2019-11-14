@@ -12,12 +12,12 @@ def units_to_mils(units):
     
 class PolyLine:
     idx = {'l': 0, 'count': 1, 'coord-start': 2}
-    coords = {}
     
     def __init__(self):
         self.idx2val = {v:k for k, v in self.idx.items()}
         
         self.count = 0
+        self.coords = {}
         
     def get_str(self):
         vals = {}
@@ -634,8 +634,7 @@ class Symbol:
         elif vals[0] == 'l':
             l = PolyLine()
             l.set_polyline_from_str(line_str)
-            self.lines += [l]
-            
+            self.lines += [l]               
             
     def __set_property_from_str(self, line_str):
         identifier = ''.join(line_str.split()[self._u_idx['value']:]).split('=')[0]
