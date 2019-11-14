@@ -361,6 +361,7 @@ class Symbol_Creator:
         print('Symbol Size: {}x{} [mils]'.format(w, h))
         
         symbol = Symbol()
+        symbol.name = self.out_symbol_name
         idx = {col:i+1 for i, col in enumerate(df.columns)}
         # Create and add pins to symbol object for each pin in imported csv
         for r in df.itertuples():
@@ -420,9 +421,7 @@ class Symbol_Creator:
                     pin_str_list += [l]
                     if pin_cnt > 0:
                         pass                
-                    
-                if l.startswith('|GRPHSTL'):
-                    pass # TODO: add graphic style and font to previous properties
+
                 prev_header = l.split()[0]
                 
         self.sym_str_list = sym.get_symbol_str_list()  

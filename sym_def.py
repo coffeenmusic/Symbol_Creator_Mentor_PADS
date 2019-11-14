@@ -16,6 +16,7 @@ class PolyLine:
     def __init__(self):
         self.idx2val = {v:k for k, v in self.idx.items()}
         
+        self.Font = None
         self.count = 0
         self.coords = {}
         
@@ -33,7 +34,7 @@ class PolyLine:
             
         return ' '.join([str(vals[i]) for i in range(len(vals))])
         
-    def set_polyline_from_str(self, line_str):
+    def set_polyline_from_str(self, line_str, fnt_str=None):
         vals = line_str.split()
         
         assert vals[0] == 'l', 'Incorrect header for polyline: ' + line_str
@@ -47,6 +48,14 @@ class PolyLine:
             self.add_coord(x, y)
             
         self.count = count
+        
+        add_font(fnt_str)
+        
+    def add_font(self, fnt_str):
+        if not(fnt_str == None):
+            f = Font()
+            f.set_font_from_str(fnt_str)
+            self.Font = f
         
     def add_coord(self, x, y):
         self.coords[self.count] = {'x': x, 'y': y}
