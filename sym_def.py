@@ -549,7 +549,6 @@ class Pin:
         
         
 class Symbol:
-    pins = {}
     sym_headers = ['V','K','|R','Y','U','b','l'] # All headers of the symbol file. This would exclude pin property headers
     _v_idx = {'value': 1}
     _k_idx = {'name': 2}
@@ -570,6 +569,7 @@ class Symbol:
         self.units = 'Base'
         self.lines = []
         self.Box = None
+        self.pins = {}
         self.property_forward_pcb = None
         self.property_place = None
         self.property_pkg_type = None
