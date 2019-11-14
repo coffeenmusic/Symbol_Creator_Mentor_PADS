@@ -771,7 +771,7 @@ class Symbol:
     # Some of the header definition is unknown Ex: V, K's int value, F Case, and D
     def _get_header_str_list(self):
         hdr = ['V '+str(self._units_dict[self.units])]
-        hdr += ['K 33671749690 new_symbol']
+        hdr += ['K 33671749690 ' + self.name]
         hdr += ['F Case']
         hdr += ['|R ' + datetime.datetime.now().strftime('%H:%M:%S_%m-%d-%y')]
         hdr += ['|BORDERTYPESUPPORT']
