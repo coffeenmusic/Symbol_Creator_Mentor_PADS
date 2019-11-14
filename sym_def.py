@@ -58,6 +58,13 @@ class Color:
     # Set color values from color string
     def set_color(self, color_str):
         self.set_rgb(*self.color_dict[color_str])
+        
+    def set_color_int(self, color_int):
+        color_int = int(color_int)
+        self.color_int = color_int
+        self.blue = color_int & 255
+        self.green = (color_int >> 8) & 255
+        self.red = (color_int >> 16) & 255        
     
     # Set color values from red green and blue 0-255 integers
     def set_rgb(self, red, green, blue):
@@ -78,12 +85,16 @@ class Color:
         return self.rgb_to_int(*self.color_dict[color_str])
 
 class GFX:
-    idx = {'|GRPHSTL_EXT01': 0, 'color': 1, 'fill-color': 2, 'fill-style': 3, 'line-style': 4, 'line-width': 5} # Graphics
+    idx = {'|GRPHSTL': 0, 'color': 1, 'fill-color': 2, 'line-style': 3, 'line-width': 4} # Graphics
+    gfx01_idx = {'|GRPHSTL_EXT01': 0, 'color': 1, 'fill-color': 2, 'fill-style': 3, 'line-style': 4, 'line-width': 5} # Graphics Extension 1
     fill_style_idx = {'Automatic': -1, 'Hollow': 0, 'Solid': 1, 'Diagdn1': 2, 'Diagup2': 3, 'Grey08': 4, 'Diagdn2': 5, 'Diagup1': 6, 'Horiz': 7, 'Vert': 8, 'Grid2': 9, 'Grid1': 10, 'X2': 11, 'X1': 12, 'Grey50': 13, 'Grey92': 14, 'Grey04': 15}
     line_style_idx = {'Automatic': -1, 'Solid': 0, 'Dash': 1, 'Center': 2, 'Phantom': 3, 'Big Dash': 4, 'Dot': 5, 'Dash-Dot': 6, 'Medium dash': 7}
     
     def __init__(self):
         self.idx2val = {v:k for k, v in self.idx.items()}
+        self.gfx01_idx2val = {v:k for k, v in self.gfx01_idx.items()}
+        self.linestyle_idx2val = {v:k for k, v in self.line_style_idx.items()}
+        self.fillstyle_idx2val = {v:k for k, v in self.fill_style_idx.items()}
     
     """
     - hdr [str]: Mentor symbol files header for given line. Ex: |GRPHSTL_EXT01
@@ -102,22 +113,51 @@ class GFX:
         c_fill.set_color(fill_color_str)
     
         self.header = hdr
-        self.color = c
-        self.fill_color = c_fill
-        self.fill_style = self.fill_style_idx[fill_style]
-        self.line_style = self.line_style_idx[line_style]
+        self.Color = c
+        self.Fill_Color = c_fill
+        #self.fill_style = self.fill_style_idx[fill_style]
+        self.fill_style = fill_style
+        #self.line_style = self.line_style_idx[line_style]
+        self.line_style = line_style
         self.line_width = w
         return self.get_str()
         
-    # Create string of format: '|GRPHSTL_EXT01 color fill-color fill-style line-style line-width'
+    def set_graphics_from_str(self, line_str):
+        vals = line_str.split()
+        
+        hdr = vals[0]
+        idx = self.idx
+        if hdr == self.gfx01_idx2val[0]:
+            idx = self.gfx01_idx
+            self.fill_style = self.fillstyle_idx2val[int(vals[idx['fill-style']])]
+        
+        self.header = hdr
+        
+        c = Color()
+        c.set_color_int(vals[idx['color']])   
+        self.Color = c
+        
+        c_fill = Color()
+        c_fill.set_color_int(vals[idx['fill-color']])            
+        self.Fill_Color = c_fill
+        
+        self.line_style = self.linestyle_idx2val[int(vals[idx['line-style']])]
+        self.line_width = int(vals[idx['line-width']])
+        
+    # Create string of format: '|GRPHSTL_EXT01 color fill-color fill-style line-style line-width' or '|GRPHSTL color fill-color line-style line-width'
     def get_str(self):
         vals = {}
+        
+        idx = self.idx
+        if self.header == self.gfx01_idx2val[0]:
+            idx = self.gfx01_idx
+            vals[idx['fill-style']] = self.fill_style_idx[self.fill_style]
+            
         vals[0] = self.header
-        vals[self.idx['color']] = self.color.color_int
-        vals[self.idx['fill-color']] = self.fill_color.color_int
-        vals[self.idx['fill-style']] = self.fill_style
-        vals[self.idx['line-style']] = self.line_style
-        vals[self.idx['line-width']] = self.line_width
+        vals[idx['color']] = self.Color.color_int
+        vals[idx['fill-color']] = self.Fill_Color.color_int
+        vals[idx['line-style']] = self.line_style_idx[self.line_style]
+        vals[idx['line-width']] = self.line_width
         return ' '.join([str(vals[i]) for i in range(len(vals))])
         
 class Font:
@@ -268,13 +308,18 @@ class Pin:
         self._idx2val = {v:k for k, v in self._idx.items()}
         self._side_idx2val = {v:k for k, v in self._side_dict.items()}
         
-    def set_pin_from_str(self, line_str):
+    def set_pin_from_str(self, line_str, gfx_str=None, fnt_str=None):
         vals = line_str.split()
         
         self.pid = vals[self._idx['id']]
         self.set_line_pos(vals[self._idx['x1']], vals[self._idx['x2']], vals[self._idx['y1']], vals[self._idx['y2']])
         self.side = self._side_idx2val[int(vals[self._idx['side']])]
         self.inverted = bool(int(vals[self._idx['inverted']]))
+        
+        if not(gfx_str == None):
+            g = GFX()
+            g.set_graphics_from_str(gfx_str)
+            self.GFX = g
     
     def set_pin(self, pid, x1, y1, x2, y2, side, inv, ptype):
         self.pid = pid
@@ -385,6 +430,9 @@ class Pin:
     def get_str_list(self, name_font='Sans Serif', num_font='Sans Serif', name_color='Dark Blue', num_color='Automatic'):
         str_list = []
         str_list += [self.get_str()]
+        
+        if not(self.GFX == None):
+            str_list += [self.GFX.get_str()]
             
         str_list += [self.Name.get_str()]
         str_list += [Font().set_font(name_font, name_color)]
@@ -417,11 +465,13 @@ class Pin:
         
 class Symbol:
     pins = {}
-    sym_headers = ['K','|R','Y','U','b'] # All headers of the symbol file. This would exclude pin property headers
+    sym_headers = ['V','K','|R','Y','U','b'] # All headers of the symbol file. This would exclude pin property headers
+    _v_idx = {'value': 1}
     _k_idx = {'name': 2}
     _d_idx = {'date': 1} # Date row indexes
     _u_idx = {'x': 1, 'y': 2, 'size': 3, 'rotation': 4, 'justification': 5, 'visible': 6, 'value': 7}
     _y_idx = {'value': 1}
+    _units_dict = {'OneTenthMil': 53, 'Base': 54} # Not exactly sure if this is correct for what the 'V num' property is
     _symtype_to_idx = {'Composite': 0, 'Module': 1, 'Annotate': 3, 'Pin': 4, 'Border': 5}
     _sym_type_dict = {'Composite': 0, 'Module': 1, 'Pin': 2, 'Annotate': 4, 'Border': 5}
     _comp2refdes = {'IC': 'U?', 'Integrated Circuit': 'U?', 'Resistor': 'R?', 'Capacitor': 'C?', 'Inductor': 'L?', 
@@ -430,7 +480,9 @@ class Symbol:
     
     def __init__(self, symbol_type='Module'):       
         self._sym_type_idx2val = {v:k for k, v in self._sym_type_dict.items()}
+        self._units_idx2val = {v:k for k, v in self._units_dict.items()}
     
+        self.units = 'Base'
         self.property_forward_pcb = None
         self.property_place = None
         self.property_pkg_type = None
@@ -490,6 +542,8 @@ class Symbol:
             b.set_box_from_str(line_str)
             b.add_graphics('Blue', 'Hollow', 'Solid', 1) # Temporary. Need to Import graphics from symbol file instead
             self.Box = b
+        elif vals[0] == 'V':
+            self.units = self._units_idx2val[int(vals[self._v_idx['value']])]
             
     def __set_property_from_str(self, line_str):
         identifier = ''.join(line_str.split()[self._u_idx['value']:]).split('=')[0]
@@ -519,15 +573,27 @@ class Symbol:
     
     def set_pin_from_str_list(self, pin_str_list):
         p = Pin()
-        for line_str in pin_str_list:
+        
+        nxt_hdr = ''
+        for i, line_str in enumerate(pin_str_list):
+            # Get next header
+            if i < len(pin_str_list) - 1:
+                nxt_hdr = pin_str_list[i+1].split()[0]
+            else:
+                nxt_hdr = ''
+                
             if line_str.startswith('P '):
-                p.set_pin_from_str(line_str)
+                gfx_str = None
+                if nxt_hdr.startswith('|GRPHSTL'):
+                    gfx_str = pin_str_list[i+1]
+                p.set_pin_from_str(line_str, gfx_str=gfx_str)
             elif line_str.startswith('L '):
                 p.set_pin_name_from_str(line_str)
             elif '#=' in line_str:
                 p.set_pin_number_from_str(line_str)
             elif 'PINTYPE=' in line_str:
                 p.set_pin_type_from_str(line_str)
+            
         
         self.pins[p.Number.value] = p
         return p
@@ -596,7 +662,7 @@ class Symbol:
     
     # Some of the header definition is unknown Ex: V, K's int value, F Case, and D
     def _get_header_str_list(self):
-        hdr = ['V 54']
+        hdr = ['V '+str(self._units_dict[self.units])]
         hdr += ['K 33671749690 new_symbol']
         hdr += ['F Case']
         hdr += ['|R ' + datetime.datetime.now().strftime('%H:%M:%S_%m-%d-%y')]
