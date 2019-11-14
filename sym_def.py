@@ -417,7 +417,7 @@ class Pin:
         
 class Symbol:
     pins = {}
-    _sym_headers = ['K','|R','Y','U','b'] # All headers of the symbol file. This would exclude pin property headers
+    sym_headers = ['K','|R','Y','U','b'] # All headers of the symbol file. This would exclude pin property headers
     _k_idx = {'name': 2}
     _d_idx = {'date': 1} # Date row indexes
     _u_idx = {'x': 1, 'y': 2, 'size': 3, 'rotation': 4, 'justification': 5, 'visible': 6, 'value': 7}
