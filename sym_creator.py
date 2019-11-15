@@ -275,7 +275,7 @@ class Symbol_Creator:
                 
                 # All these if statements just parse the cond_list of input scripts
                 if op == 'is':
-                    if ptype == pt:
+                    if ptype == pt or pt == 'any':
                         if mt == 'sw':
                             if lbl.startswith(t):
                                 side[i] = s
@@ -386,7 +386,10 @@ class Symbol_Creator:
         self.Symbol = symbol
         
     def export_symbol(self):
-        f = open(os.path.join(self.out_dir, self.out_symbol_name) + '.1', 'w')
+        sym_name = self.out_symbol_name
+        if not(sym_name.endswith('.1')):
+            sym_name += '.1'
+        f = open(os.path.join(self.out_dir, sym_name), 'w')
         self.__write_str_list(f, self.sym_str_list)
         f.close()
     
@@ -432,7 +435,7 @@ class Symbol_Creator:
     # def get_bus_signals(df):
     #     pass
     
-    #def PADS_csv_to_simple_csv(self, pads_csv, export_name='simple.csv'):
-    #    df = pd.read_csv(pads_csv, delimiter=';')
-    #    df = df.filter(['Pin Label', 'Pin Number', 'Pin Type'])
-    #    df.to_csv(export_name, index=False, sep=';')
+    def PADS_csv_to_simple_csv(self, pads_csv, export_name='simple.csv'):
+        df = pd.read_csv(pads_csv, delimiter=';')
+        df = df.filter(['Pin Label', 'Pin Number', 'Pin Type'])
+        df.to_csv(export_name, index=False, sep=';')

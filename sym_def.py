@@ -382,7 +382,7 @@ class Pin:
     _idx = {'P': 0, 'id': 1, 'x1': 2, 'y1': 3, 'x2': 4, 'y2': 5, 'unk': 6, 'side': 7, 'inverted': 8} # Pin row to string index
     _side_dict = {'Top': 0, 'Bottom': 1, 'Left': 2, 'Right': 3}
     _inv_dict = {False: 0, 'False': 0, 'FALSE': 0, 'Inverted': 1, True: 1, 'True': 1, 'TRUE': 1} # Inverted
-    pin_types = ['IN', 'OUT', 'BI', 'TRI', 'OCL', 'OEM', 'POWER', 'GROUND', 'ANALOG']
+    pin_types = ['IN', 'OUT', 'BI', 'TRI', 'OCL', 'OEM', 'POWER', 'GROUND', 'ANALOG', 'TERMINAL']
     active_low_identifiers = ('_N', '#') # I know there are more (not including). I'll leave that to someone else or some other time
     
     def __init__(self):
@@ -417,7 +417,7 @@ class Pin:
         self.Type = ptype
         
     def set_pin_type(self, val):
-        assert val in self.pin_types
+        assert val in self.pin_types, 'Value passed: ' + str(val)
         p = Property()
         p.set_property('A', 'PINTYPE', 0, 0, 100, 0, 'Middle Left', 'Hidden', val)
         self.Type = p
