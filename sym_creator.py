@@ -162,6 +162,10 @@ class Symbol_Creator:
             diff = r[idx['Diff']] >= 0
             sort = r[idx['sort']]
             tc = r[idx['Type_Change']]
+            
+            nxt_lbl = ''
+            if i < len(df)-1:
+                nxt_lbl = df.iloc[i+1]['Pin Label']
 
             # Add gaps to differential pairs
             if diff and inv:
@@ -170,7 +174,7 @@ class Symbol_Creator:
                 if i + 1 < len(df):
                     gaps[i+1] = -1
                 
-            if lbl.startswith('NC'):
+            if lbl.startswith('NC') and not(nxt_lbl.startswith('NC')):
                 if i + 1 < len(df):
                     gaps[i+1] = 1 
             if tc:
