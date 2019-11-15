@@ -192,7 +192,7 @@ class Symbol_Creator:
         
         return df
         
-    def __get_coordinates(self, df, w, pin_len=300):
+    def __get_coordinates(self, df, w, pin_len=300, gap_delta=100, y_delta=100):
         df = self.__sort_pin_df(df)
         df = self.__get_gaps(df)
         
@@ -217,14 +217,55 @@ class Symbol_Creator:
             if sort == 0:
                 gaps = 0
             
-            gaps += gap*100
+            gaps += gap*gap_delta
             
             x += [0 if side == side_dict['Left'] else w + pin_len*2]
-            y += [sort*100 + gaps]
+            y += [sort*y_delta + gaps]
             
         df.loc[:, 'x'] = x
         df.loc[:, 'y'] = y
         
+        df = self.__topdown_coordinates(df, gap_delta=gap_delta, y_delta=y_delta)
+        
+        return df
+    
+    """
+    Move select pins as close to the top of the symbol as possible
+    """
+    def __topdown_coordinates(self, df, gap_delta=100, y_delta=100):
+        max_y = df.loc[:,'y'].max()
+        
+        gaps = 0
+        cnt_l = 0
+        cnt_r = 0
+        gaps_l = 0
+        gaps_r = 0
+        
+        y = list(df.loc[:, 'y'].values)
+        
+        idx = {col:i+1 for i, col in enumerate(df.columns)}
+        for r in df.itertuples():
+            i = r[0] # dataframe index
+            lbl = r[idx['Pin Label']]
+            ptype = r[idx['Pin Type']]
+            gap = r[idx['gap']]
+            sort = r[idx['sort']]
+            side = r[idx['Side']]
+            
+            if ptype == 'POWER':
+                if side == side_dict['Left']:
+                    if cnt_l == 0:
+                        gap = 0
+                    gaps_l += gap*gap_delta
+                    y[i] = max_y - (cnt_l*y_delta + gaps_l)
+                    cnt_l += 1
+                else:
+                    if cnt_r == 0:
+                        gap = 0
+                    gaps_r += gap*gap_delta
+                    y[i] = max_y - (cnt_r*y_delta + gaps_r)
+                    cnt_r += 1
+        df.loc[:, 'y'] = y
         return df
     
     """
