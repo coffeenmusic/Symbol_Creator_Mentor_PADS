@@ -238,8 +238,7 @@ class Symbol_Creator:
         gaps = 0
         cnt_l = 0
         cnt_r = 0
-        gaps_l = 0
-        gaps_r = 0
+        gaps = 0
         
         y = list(df.loc[:, 'y'].values)
         
@@ -252,18 +251,20 @@ class Symbol_Creator:
             sort = r[idx['sort']]
             side = r[idx['Side']]
             
+            if sort == 0:
+                gaps = 0
+            
             if ptype == 'POWER':
+                gaps += gap*gap_delta
                 if side == side_dict['Left']:
                     if cnt_l == 0:
-                        gap = 0
-                    gaps_l += gap*gap_delta
-                    y[i] = max_y - (cnt_l*y_delta + gaps_l)
+                        gaps = 0
+                    y[i] = max_y - (cnt_l*y_delta + gaps)
                     cnt_l += 1
                 else:
                     if cnt_r == 0:
-                        gap = 0
-                    gaps_r += gap*gap_delta
-                    y[i] = max_y - (cnt_r*y_delta + gaps_r)
+                        gaps = 0
+                    y[i] = max_y - (cnt_r*y_delta + gaps)
                     cnt_r += 1
         df.loc[:, 'y'] = y
         return df
