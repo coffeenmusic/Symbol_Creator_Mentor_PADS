@@ -345,7 +345,7 @@ class Symbol_Creator:
     """
     def symbol_from_csv(self, csv_file, pin_len = 300, box_margin=100, cond_list=None):    
         # Import CSV
-        df = pd.read_csv(csv_file, delimiter=';')
+        df = pd.read_csv(csv_file, sep='[,;]')
         df = self.__get_diff_pairs(df)
         
         # If csv doesn't have Inverted Column, then create it
@@ -440,6 +440,6 @@ class Symbol_Creator:
     #     pass
     
     def PADS_csv_to_simple_csv(self, pads_csv, export_name='simple.csv'):
-        df = pd.read_csv(pads_csv, delimiter=';')
+        df = pd.read_csv(pads_csv, sep='[,;]')
         df = df.filter(['Pin Label', 'Pin Number', 'Pin Type'])
         df.to_csv(export_name, index=False, sep=';')
