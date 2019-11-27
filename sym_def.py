@@ -383,7 +383,8 @@ class Pin:
     _side_dict = {'Top': 0, 'Bottom': 1, 'Left': 2, 'Right': 3}
     _inv_dict = {False: 0, 'False': 0, 'FALSE': 0, 'Inverted': 1, True: 1, 'True': 1, 'TRUE': 1} # Inverted
     pin_types = ['IN', 'OUT', 'BI', 'TRI', 'OCL', 'OEM', 'POWER', 'GROUND', 'ANALOG', 'TERMINAL']
-    active_low_identifiers = ('_N', '#') # I know there are more (not including). I'll leave that to someone else or some other time
+    active_low_id_end = ('_N', '#') # Identifies an active low pin name if it ends with these. I know there are more (not including). I'll leave that to someone else or some other time
+    active_low_id_start = ('-') # Identifies an active low pin name if it starts with these. 
     
     def __init__(self):
         self._idx2val = {v:k for k, v in self._idx.items()}

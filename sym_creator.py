@@ -62,15 +62,28 @@ class Symbol_Creator:
     
     # From pins in the imported dataframe, find pins that share the same name minus the trailing _N or _P
     def __get_diff_pairs(self, df):
-        diff_pair_identifiers = ('_N', '_P')
+        diff_end_identifiers = ('_N', '_P')
+        diff_start_identifiers = ('+', '-')
     
         lbl_list = list(df['Pin Label'].values)
-        diff_list = [l[:-1] if l.endswith(diff_pair_identifiers) else l for l in lbl_list]
+        diff_list = [l[:-1] if l.endswith(diff_end_identifiers) else l for l in lbl_list]
+        diff_list += [l[1:] if l.startswith(diff_start_identifiers) else l for l in lbl_list]
         cnt = Counter(diff_list)
         diff_list = [l for l, v in cnt.items() if v > 1] # list labels that have both an _N and _P counterpart
-        diff_list_full = [l for l in lbl_list if l.endswith(diff_pair_identifiers) and l[:-1] in diff_list] # get original label names for above list
         
-        df['Diff'] = [diff_list.index(l[:-1]) if l in diff_list_full else -1 for l in lbl_list]
+        # get original label names for above list
+        diff_list_full = [l for l in lbl_list if l.endswith(diff_end_identifiers) and l[:-1] in diff_list] 
+        diff_list_full += [l for l in lbl_list if l.startswith(diff_start_identifiers) and l[1:] in diff_list]
+        
+        #df['Diff'] = [diff_list.index(l[:-1]) if l in diff_list_full else -1 for l in lbl_list]
+        idx = [-1]*len(lbl_list)
+        for i, l in enumerate(lbl_list):
+            if l in diff_list_full:
+                if l.startswith(diff_start_identifiers):
+                    idx[i] = diff_list.index(l[1:])
+                elif l.endswith(diff_end_identifiers):
+                    idx[i] = diff_list.index(l[:-1])
+        df['Diff'] = idx
         return df
         
     """
@@ -147,7 +160,7 @@ class Symbol_Creator:
     def __get_gaps(self, df):
         gap_list = []
         prev_diff = False
-        gaps = np.zeros((len(df)))
+        gaps = np.zeros((len(df)+1))
         
         # Get gaps for pin type changes
         pt_list = list(df['Pin Type'].values)
@@ -171,12 +184,10 @@ class Symbol_Creator:
             if diff and inv:
                 gaps[i] = 1
             elif diff and not(inv):
-                if i + 1 < len(df):
-                    gaps[i+1] = -1
+                gaps[i+1] = -1
                 
             if lbl.startswith('NC') and not(nxt_lbl.startswith('NC')):
-                if i + 1 < len(df):
-                    gaps[i+1] = 1 
+                gaps[i+1] = 1 
             if tc:
                 gaps[i] = 1
                 
@@ -188,7 +199,7 @@ class Symbol_Creator:
             if sort == 0:
                 gaps[i] = 0
             
-        df['gap'] = gaps
+        df['gap'] = gaps[:-1]
         
         return df
         
@@ -275,14 +286,18 @@ class Symbol_Creator:
     returns: dataframe
     """
     def __predict_inverted_to_df(self, df):
-        al = Pin().active_low_identifiers
+        al_end = Pin().active_low_id_end
+        al_start = Pin().active_low_id_start
+        
         inv = [False]*len(df)
         
         idx = {col:i+1 for i, col in enumerate(df.columns)}
         for i, r in enumerate(df.itertuples()):
             lbl = r[idx['Pin Label']]
             
-            if lbl.endswith(al):
+            if lbl.endswith(al_end):
+                inv[i] = True
+            elif lbl.startswith(al_start):
                 inv[i] = True
                 
         df['Inverted'] = inv
