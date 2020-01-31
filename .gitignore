@@ -1,3 +1,6 @@
+Documentation/
+gui.py
+GUI.ipynb
 Debug.ipynb
 *.1
 *.csv

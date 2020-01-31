@@ -778,19 +778,29 @@ class Symbol:
             str_list += [l.get_str()]
         return str_list        
     
-    # Some of the header definition is unknown Ex: V, K's int value, F Case, and D
+    """
+        V: Version #
+        K: License ? Name
+        F: Unknown
+        |R: Datetime Comment
+        Y: SymbolType
+        D: Size x_min y_min x_max y_max
+        Z: SheetSize
+        i: MaxObject
+    Notes: 
+        | at the start of a line means it is a comment line
+    """
     def _get_header_str_list(self):
-        hdr = ['V '+str(self._units_dict[self.units])]
+        hdr = ['V '+str(self._units_dict[self.units])] # V [Version]
         hdr += ['K 33671749690 ' + self.name]
         hdr += ['F Case']
         hdr += ['|R ' + datetime.datetime.now().strftime('%H:%M:%S_%m-%d-%y')]
-        hdr += ['|BORDERTYPESUPPORT']
         hdr += ['Y ' + str(self._symtype_to_idx[self.symbol_type])]
-        hdr += ['D 0 0 2540000 2540000', 'Z 10', 'i 3', '|I 6']
+        hdr += ['D 0 0 2540000 2540000', 'Z 10', 'i 3']
         return hdr
     
     def _get_footer_str_list(self):
-        return ['E']
+        return ['E'] # End
         
     # returns a list of all text necessary to recreate a symbol file
     # this includes header, symbol properties, pins, fonts, graphics, and symbol box
