@@ -263,7 +263,7 @@ class Font:
         vals[self.idx['type']] = self.font_dict[self.font]
         return ' '.join([str(vals[i]) for i in range(len(vals))])
         
-class Property:
+class Attribute:
     _idx = {'hdr': 0, 'x': 1, 'y': 2, 'size': 3, 'rotation': 4, 'justification': 5, 'visible': 6, 'value': 7}
     just_dict = {'Upper Left': 1, 'Middle Left': 2, 'Lower Left': 3, 'Upper Center': 4, 'Middle Center': 5, 'Lower Center': 6, 'Upper Right': 7, 'Middle Right': 8, 'Lower Right': 9}
     rotation_dict = {'0': 0, '90': 1, '180': 2, '270': 3}
@@ -278,7 +278,7 @@ class Property:
         self.GFX = None
         self.Font = None
     
-    def set_property_from_str(self, line_str, identifier, gfx_str=None, fnt_str=None):
+    def set_attribute_from_str(self, line_str, identifier, gfx_str=None, fnt_str=None):
         # Add = sign to identifier if line_str has it, but identifier doesn't so value is assigned correctly
         if '=' in ' '.join(line_str.split()[self._idx['value']:]) and not('=' in identifier):
             identifier += '='
@@ -350,7 +350,7 @@ class Property:
             
         return ' '.join([str(vals[i]) for i in range(len(vals))])
         
-class PinName(Property):
+class PinName(Attribute):
     _idx = {'hdr': 0, 'x': 1, 'y': 2, 'size': 3, 'rotation': 4, 'justification': 5, 'locality': 6, 'visible': 7, 'inverted': 8, 'value': 9} # Line row values to string index
     locality_dict = {'Local': 0, 'Global': 1}
     invert_dict = {'Not Inverted': 0, 'Inverted': 1}
@@ -359,8 +359,8 @@ class PinName(Property):
     def __init__(self):
         super().__init__()
         
-    def set_property_from_str(self, line_str, gfx_str=None, fnt_str=None):
-        super().set_property_from_str(line_str, '', gfx_str=gfx_str, fnt_str=fnt_str)
+    def set_attribute_from_str(self, line_str, gfx_str=None, fnt_str=None):
+        super().set_attribute_from_str(line_str, '', gfx_str=gfx_str, fnt_str=fnt_str)
         
     def set_property(self, x, y, size, rot, just, vis, val):
         super().set_property('L', '', x, y, size, rot, just, vis, val)
@@ -415,19 +415,19 @@ class Pin:
         self.set_pin_type(ptype)
         
     def set_pin_type_from_str(self, line_str, fnt_str=None):
-        ptype = Property()
-        ptype.set_property_from_str(line_str, 'PINTYPE=', fnt_str=fnt_str)
+        ptype = Attribute()
+        ptype.set_attribute_from_str(line_str, 'PINTYPE=', fnt_str=fnt_str)
         self.Type = ptype
         
     def set_pin_type(self, val):
         assert val in self.pin_types, 'Value passed: ' + str(val)
-        p = Property()
-        p.set_property('A', 'PINTYPE', 0, 0, 100, 0, 'Middle Left', 'Hidden', val)
-        self.Type = p
+        a = Attribute()
+        a.set_property('A', 'PINTYPE', 0, 0, 100, 0, 'Middle Left', 'Hidden', val)
+        self.Type = a
         
     def set_pin_name_from_str(self, line_str, gfx_str=None, fnt_str=None):
         name = PinName()
-        name.set_property_from_str(line_str, gfx_str=gfx_str, fnt_str=fnt_str)
+        name.set_attribute_from_str(line_str, gfx_str=gfx_str, fnt_str=fnt_str)
         self.Name = name
         
     def set_pin_name(self, x, y, side, val):
@@ -447,8 +447,8 @@ class Pin:
         self.Name = name
     
     def set_pin_number_from_str(self, line_str):
-        num = Property()
-        num.set_property_from_str(line_str, '#=')
+        num = Attribute()
+        num.set_attribute_from_str(line_str, '#=')
         self.Number = num
     
     def set_pin_number(self, x, y, side, val):
@@ -464,7 +464,7 @@ class Pin:
             num_x -= num_delta_x
             num_just = 'Lower Left'
         
-        num = Property()
+        num = Attribute()
         num.set_property('A', '#', num_x, num_y, 100, 0, num_just, 'Visible', val)
         self.Number = num
      
@@ -651,27 +651,27 @@ class Symbol:
     def __set_property_from_str(self, line_str):
         identifier = ''.join(line_str.split()[self._u_idx['value']:]).split('=')[0]
     
-        prop = Property()
-        prop.set_property_from_str(line_str, identifier)
+        attr = Attribute()
+        attr.set_attribute_from_str(line_str, identifier)
         
-        if prop.property == 'DEVICE':
-            self.property_device = prop
-        elif prop.property == 'FORWARD_PCB':
-            self.property_forward_pcb = prop
-        elif prop.property == 'HETERO':
-            self.property_hetero = prop
-        elif prop.property == 'PKG_STYLE':
-            self.property_pkg_style = prop
-        elif prop.property == 'PKG_TYPE':
-            self.property_pkg_type = prop
-        elif prop.property == 'PLACE':
-            self.property_place = prop
-        elif prop.property == 'REFDES':
-            self.property_refdes = prop
-        elif prop.property == 'VALUE':
-            self.property_value = prop
-        elif prop.property == 'NAME_PLACEHOLDER':
-            self.property_name_placeholder = prop
+        if attr.property == 'DEVICE':
+            self.property_device = attr
+        elif attr.property == 'FORWARD_PCB':
+            self.property_forward_pcb = attr
+        elif attr.property == 'HETERO':
+            self.property_hetero = attr
+        elif attr.property == 'PKG_STYLE':
+            self.property_pkg_style = attr
+        elif attr.property == 'PKG_TYPE':
+            self.property_pkg_type = attr
+        elif attr.property == 'PLACE':
+            self.property_place = attr
+        elif attr.property == 'REFDES':
+            self.property_refdes = attr
+        elif attr.property == 'VALUE':
+            self.property_value = attr
+        elif attr.property == 'NAME_PLACEHOLDER':
+            self.property_name_placeholder = attr
         
     
     def set_pin_from_str_list(self, pin_str_list):
@@ -724,10 +724,10 @@ class Symbol:
         self.property_refdes = self.__get_default_property('REFDES', refdes, x=x, y=y, vis='Visible', just='Upper Left')
     
     # Get property object for one of the default symbol properties
-    def __get_default_property(self, prop, val, hdr='U', x=0, y=0, size=90, rot=0, just='Middle Left', vis='Hidden'):
-        p = Property()
-        p.set_property(hdr, prop, x, y, size, rot, just, vis, val)
-        return p
+    def __get_default_property(self, attr, val, hdr='U', x=0, y=0, size=90, rot=0, just='Middle Left', vis='Hidden'):
+        a = Attribute()
+        a.set_property(hdr, attr, x, y, size, rot, just, vis, val)
+        return a
   
     """
     - font [Font object]: change default font for symbol properties
