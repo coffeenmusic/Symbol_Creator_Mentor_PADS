@@ -351,7 +351,9 @@ class Property:
         return ' '.join([str(vals[i]) for i in range(len(vals))])
         
 class PinName(Property):
-    _idx = {'hdr': 0, 'x': 1, 'y': 2, 'size': 3, 'rotation': 4, 'justification': 5, 'unk': 6, 'visible': 7, 'unk2': 8, 'value': 9} # Line row values to string index
+    _idx = {'hdr': 0, 'x': 1, 'y': 2, 'size': 3, 'rotation': 4, 'justification': 5, 'locality': 6, 'visible': 7, 'inverted': 8, 'value': 9} # Line row values to string index
+    locality_dict = {'Local': 0, 'Global': 1}
+    invert_dict = {'Not Inverted': 0, 'Inverted': 1}
     vis_dict = {'Hidden': 0, 'Visible': 1}
     
     def __init__(self):
@@ -370,10 +372,10 @@ class PinName(Property):
             self._idx['size']: self.size,
             self._idx['rotation']: self.rotation_dict[self.rotation],
             self._idx['justification']: self.just_dict[self.justification],
+            self._idx['locality']: self.locality_dict['Local'],
             self._idx['visible']: self.vis_dict[self.visible],
-            self._idx['value']: str(self.value),
-            self._idx['unk']: 0,
-            self._idx['unk2']: 0}
+            self._idx['inverted']: self.invert_dict['Not Inverted'],
+            self._idx['value']: str(self.value)}
             
         return ' '.join([str(vals[i]) for i in range(len(vals))])
         
@@ -560,12 +562,12 @@ class Pin:
         
 class Symbol:
     sym_headers = ['V','K','|R','Y','U','b','l'] # All headers of the symbol file. This would exclude pin property headers
-    _v_idx = {'value': 1}
-    _k_idx = {'name': 2}
+    _v_idx = {'value': 1} # Version
+    _k_idx = {'name': 2} # License
     _d_idx = {'date': 1} # Date row indexes
-    _u_idx = {'x': 1, 'y': 2, 'size': 3, 'rotation': 4, 'justification': 5, 'visible': 6, 'value': 7}
+    _u_idx = {'x': 1, 'y': 2, 'size': 3, 'rotation': 4, 'justification': 5, 'visible': 6, 'value': 7} # Global Attribute
     _y_idx = {'value': 1}
-    _units_dict = {'OneTenthMil': 53, 'Base': 54} # Not exactly sure if this is correct for what the 'V num' property is
+    _version_dict = {'Original': 50, 'ViewDraw8': 51, 'HighPrecision-OneTenthMil': 53, 'HighPrecision-Metric': 54} # Internal Version Number: 50 - original, 51 - ViewDraw8.0.0_2001-08-13, 53 - High Precision [1/10 mil] ???, 54 - High Precision [metric] EE2007.8
     _symtype_to_idx = {'Composite': 0, 'Module': 1, 'Annotate': 3, 'Pin': 4, 'Border': 5}
     _sym_type_dict = {'Composite': 0, 'Module': 1, 'Pin': 2, 'Annotate': 4, 'Border': 5}
     _comp2refdes = {'IC': 'U?', 'Integrated Circuit': 'U?', 'Resistor': 'R?', 'Capacitor': 'C?', 'Inductor': 'L?', 
@@ -574,9 +576,9 @@ class Symbol:
     
     def __init__(self, symbol_type='Module'):       
         self._sym_type_idx2val = {v:k for k, v in self._sym_type_dict.items()}
-        self._units_idx2val = {v:k for k, v in self._units_dict.items()}
+        self._version_idx2val = {v:k for k, v in self._version_dict.items()}
     
-        self.units = 'Base'
+        self.version = 'HighPrecision-Metric'
         self.lines = []
         self.Box = None
         self.pins = {}
@@ -640,7 +642,7 @@ class Symbol:
             b.add_graphics('Blue', 'Hollow', 'Solid', 1) # Temporary. Need to Import graphics from symbol file instead
             self.Box = b
         elif vals[0] == 'V':
-            self.units = self._units_idx2val[int(vals[self._v_idx['value']])]
+            self.version = self._version_idx2val[int(vals[self._v_idx['value']])]
         elif vals[0] == 'l':
             l = PolyLine()
             l.set_polyline_from_str(line_str)
@@ -779,7 +781,7 @@ class Symbol:
         return str_list        
     
     """
-        V: Version #
+        V: Version # [Must be the first line of the symbol]
         K: License ? Name
         F: Unknown
         |R: Datetime Comment
@@ -791,7 +793,7 @@ class Symbol:
         | at the start of a line means it is a comment line
     """
     def _get_header_str_list(self):
-        hdr = ['V '+str(self._units_dict[self.units])] # V [Version]
+        hdr = ['V '+str(self._version_dict[self.version])] # V [Version]
         hdr += ['K 33671749690 ' + self.name]
         hdr += ['F Case']
         hdr += ['|R ' + datetime.datetime.now().strftime('%H:%M:%S_%m-%d-%y')]
