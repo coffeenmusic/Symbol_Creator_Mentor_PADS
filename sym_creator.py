@@ -4,7 +4,11 @@ import pandas as pd
 import math
 import re
 from collections import Counter
-from sym_def import Symbol, Box, GFX, Font, Color, Pin, Attribute, PinName, mils_to_units, units_to_mils, side_dict, side_idx2val
+from sym_def import Symbol, Box, GFX, Font, Color, Pin, Attribute, PinName, mils_to_units, units_to_mils
+from sym_format import sf
+
+side_dict = sf.side
+side_idx2val = sf.i_side
 
 class Symbol_Creator:
     """

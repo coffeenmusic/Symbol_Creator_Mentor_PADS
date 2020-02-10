@@ -1,8 +1,5 @@
 import datetime
-
-# Mentor Graphics human to index conversions
-side_dict = {'Top': 0, 'Bottom': 1, 'Left': 2, 'Right': 3}
-side_idx2val = {v:k for k, v in side_dict.items()}
+from sym_format import sf
     
 def mils_to_units(mils):
     return int((mils/100)*254000)
@@ -262,14 +259,19 @@ class Font:
         vals[self.idx['color']] = self.Color.color_int
         vals[self.idx['type']] = self.font_dict[self.font]
         return ' '.join([str(vals[i]) for i in range(len(vals))])
-        
-class Attribute:
-    _idx = {'hdr': 0, 'x': 1, 'y': 2, 'size': 3, 'rotation': 4, 'justification': 5, 'visible': 6, 'value': 7}
-    just_dict = {'Upper Left': 1, 'Middle Left': 2, 'Lower Left': 3, 'Upper Center': 4, 'Middle Center': 5, 'Lower Center': 6, 'Upper Right': 7, 'Middle Right': 8, 'Lower Right': 9}
-    rotation_dict = {'0': 0, '90': 1, '180': 2, '270': 3}
-    vis_dict = {'Hidden': 0, 'Hidden-wProperty': 2, 'Visible': 3, 'Visible-wProperty': 4}
-    
+
+"""
+    A: Attribute object type. 7 fields
+    A x y size rotation justification visible value
+"""        
+class Attribute:    
     def __init__(self):
+        a = sf.objects['A']
+        self._idx = a.idx
+        self.just_dict = a.field['justification']
+        self.rotation_dict = a.field['rotation']
+        self.vis_dict = a.field['visible']
+    
         self._idx2val = {v:k for k, v in self._idx.items()}
         self._rot_idx2val = {v:k for k, v in self.rotation_dict.items()}
         self._vis_idx2val = {v:k for k, v in self.vis_dict.items()}
@@ -350,14 +352,15 @@ class Attribute:
             
         return ' '.join([str(vals[i]) for i in range(len(vals))])
         
-class PinName(Attribute):
-    _idx = {'hdr': 0, 'x': 1, 'y': 2, 'size': 3, 'rotation': 4, 'justification': 5, 'locality': 6, 'visible': 7, 'inverted': 8, 'value': 9} # Line row values to string index
-    locality_dict = {'Local': 0, 'Global': 1}
-    invert_dict = {'Not Inverted': 0, 'Inverted': 1}
-    vis_dict = {'Hidden': 0, 'Visible': 1}
-    
+class PinName(Attribute):    
     def __init__(self):
         super().__init__()
+        
+        l = sf.objects['L']
+        self._idx = l.idx
+        self.vis_dict = l.field['visible']
+        self.locality_dict = l.field['locality']
+        self.invert_dict = l.field['inverted']
         
     def set_attribute_from_str(self, line_str, gfx_str=None, fnt_str=None):
         super().set_attribute_from_str(line_str, '', gfx_str=gfx_str, fnt_str=fnt_str)
@@ -366,7 +369,7 @@ class PinName(Attribute):
         super().set_property('L', '', x, y, size, rot, just, vis, val)
         
     def get_str(self):
-        vals = {self._idx['hdr']: 'L', 
+        vals = {self._idx['L']: 'L', 
             self._idx['x']: self.x,
             self._idx['y']: self.y,
             self._idx['size']: self.size,
@@ -381,16 +384,20 @@ class PinName(Attribute):
         
   
 class Pin:
-    _idx = {'P': 0, 'id': 1, 'x1': 2, 'y1': 3, 'x2': 4, 'y2': 5, 'unk': 6, 'side': 7, 'inverted': 8} # Pin row to string index
-    _side_dict = {'Top': 0, 'Bottom': 1, 'Left': 2, 'Right': 3}
-    _inv_dict = {False: 0, 'False': 0, 'FALSE': 0, 'Inverted': 1, True: 1, 'True': 1, 'TRUE': 1} # Inverted
     pin_types = ['IN', 'OUT', 'BI', 'TRI', 'OCL', 'OEM', 'POWER', 'GROUND', 'ANALOG', 'TERMINAL']
     active_low_id_end = ('_N', '#') # Identifies an active low pin name if it ends with these. I know there are more (not including). I'll leave that to someone else or some other time
     active_low_id_start = ('-') # Identifies an active low pin name if it starts with these. 
     
     def __init__(self):
-        self._idx2val = {v:k for k, v in self._idx.items()}
-        self._side_idx2val = {v:k for k, v in self._side_dict.items()}
+        p = sf.objects['P'] # Pin Format Object
+        self._idx = p.idx # Pin row to string index
+        self._idx2val = p.idx2val
+        
+        self._side_dict = p.field['side']
+        self._side_idx2val = p.field_idx2val['side']
+        
+        self._inv_dict = p.field['inverted'] # Inverted
+        self._inv_dict.update({False: 0, 'False': 0, 'FALSE': 0, True: 1, 'True': 1, 'TRUE': 1})
         
         self.GFX = None
         
@@ -422,7 +429,7 @@ class Pin:
     def set_pin_type(self, val):
         assert val in self.pin_types, 'Value passed: ' + str(val)
         a = Attribute()
-        a.set_property('A', 'PINTYPE', 0, 0, 100, 0, 'Middle Left', 'Hidden', val)
+        a.set_property('A', 'PINTYPE', 0, 0, 100, 0, 'Middle Left', 'None', val)
         self.Type = a
         
     def set_pin_name_from_str(self, line_str, gfx_str=None, fnt_str=None):
@@ -465,7 +472,7 @@ class Pin:
             num_just = 'Lower Left'
         
         num = Attribute()
-        num.set_property('A', '#', num_x, num_y, 100, 0, num_just, 'Visible', val)
+        num.set_property('A', '#', num_x, num_y, 100, 0, num_just, 'Value', val)
         self.Number = num
      
     """
@@ -503,10 +510,10 @@ class Pin:
         vals = {}        
         vals[self._idx['P']] = 'P'
         vals[self._idx['id']] = self.pid
-        vals[self._idx['x1']] = x1
-        vals[self._idx['y1']] = y1
-        vals[self._idx['x2']] = x2
-        vals[self._idx['y2']] = y2
+        vals[self._idx['x-net']] = x1
+        vals[self._idx['y-net']] = y1
+        vals[self._idx['x-sym']] = x2
+        vals[self._idx['y-sym']] = y2
         vals[self._idx['unk']] = 0
         vals[self._idx['side']] = self._side_dict[self.side]
         vals[self._idx['inverted']] = self._inv_dict[self.inverted]
@@ -714,17 +721,17 @@ class Symbol:
         self.property_place = self.__get_default_property('PLACE', 'YES')
         self.property_pkg_type = self.__get_default_property('PKG_TYPE', 'PKG_TYPE')
         self.property_device = self.__get_default_property('DEVICE', 'DEVICE')
-        self.property_value = self.__get_default_property('VALUE', 'VALUE', x=300, y=-200, vis='Visible')
-        self.property_pkg_style = self.__get_default_property('PKG_STYLE', 'PKG_STL', x=300, y=-300, vis='Visible')
+        self.property_value = self.__get_default_property('VALUE', 'VALUE', x=300, y=-200, vis='Value')
+        self.property_pkg_style = self.__get_default_property('PKG_STYLE', 'PKG_STL', x=300, y=-300, vis='Value')
         
     def set_refdes(self, box_min_x, box_max_y, component='IC', delta_x=100, delta_y=100):
         x = box_min_x + delta_x # Add delta 100mil
         y = box_max_y + delta_y # Add delta 100mil
         refdes = self._comp2refdes[component] # Ex: U? for Integrated Circuit
-        self.property_refdes = self.__get_default_property('REFDES', refdes, x=x, y=y, vis='Visible', just='Upper Left')
+        self.property_refdes = self.__get_default_property('REFDES', refdes, x=x, y=y, vis='Value', just='Upper Left')
     
     # Get property object for one of the default symbol properties
-    def __get_default_property(self, attr, val, hdr='U', x=0, y=0, size=90, rot=0, just='Middle Left', vis='Hidden'):
+    def __get_default_property(self, attr, val, hdr='U', x=0, y=0, size=90, rot=0, just='Middle Left', vis='None'):
         a = Attribute()
         a.set_property(hdr, attr, x, y, size, rot, just, vis, val)
         return a
