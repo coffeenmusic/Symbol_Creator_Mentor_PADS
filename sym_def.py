@@ -1,5 +1,7 @@
 import datetime
-from sym_format import sf
+from sym_format import SymbolFormat
+
+sf = SymbolFormat()
     
 def mils_to_units(mils):
     return int((mils/100)*254000)
@@ -8,10 +10,9 @@ def units_to_mils(units):
     return (units/254000)*100
     
 class PolyLine:
-    idx = {'l': 0, 'count': 1, 'coord-start': 2}
-    
     def __init__(self):
-        self.idx2val = {v:k for k, v in self.idx.items()}
+        self.idx = sf.l().copy()
+        self.idx['coord_start'] = 2
         
         self.Font = None
         self.count = 0
@@ -22,7 +23,7 @@ class PolyLine:
         vals[self.idx['l']] = 'l'
         vals[self.idx['count']] = self.count
         
-        cs = self.idx['coord-start']
+        cs = self.idx['coord_start']
         for i, coord in enumerate(self.coords.values(), int(cs/2)):
             x = coord['x']
             y = coord['y']
@@ -37,7 +38,7 @@ class PolyLine:
         assert vals[0] == 'l', 'Incorrect header for polyline: ' + line_str
         
         count = int(vals[self.idx['count']])
-        cs = self.idx['coord-start'] # idx where first x coordinate starts
+        cs = self.idx['coord_start'] # idx where first x coordinate starts
         
         for i in range(cs, (cs+count-1)*2, 2):
             x = int(vals[i])
@@ -59,10 +60,9 @@ class PolyLine:
         self.count += 1
         
 
-class Box:
-    idx = {'b': 0, 'x1': 1, 'y1': 2, 'x2': 3, 'y2': 4}
-    
+class Box:    
     def __init__(self):
+        self.idx = sf.b()
         self.idx2val = {v:k for k, v in self.idx.items()}
         
     def set_box_from_str(self, line_str):
@@ -102,7 +102,8 @@ class Color:
     color_dict = {'Automatic': (-1,-1,-1), 'Red': (255,0,0), 'Dark Blue': (0,0,132), 'Blue': (0,0,255)}
     
     def __init__(self):
-        self.color_idx2val = {v:k for k, v in self.color_dict.items()}
+        pass
+        #self.color_idx2val = {v:k for k, v in self.color_dict.items()}
     
     # Set color values from color string
     def set_color(self, color_str):
@@ -133,15 +134,15 @@ class Color:
     def color_to_int(self, color_str):
         return self.rgb_to_int(*self.color_dict[color_str])
 
-class GFX:
-    idx = {'|GRPHSTL': 0, 'color': 1, 'fill-color': 2, 'line-style': 3, 'line-width': 4} # Graphics
-    gfx01_idx = {'|GRPHSTL_EXT01': 0, 'color': 1, 'fill-color': 2, 'fill-style': 3, 'line-style': 4, 'line-width': 5} # Graphics Extension 1
-    fill_style_idx = {'Automatic': -1, 'Hollow': 0, 'Solid': 1, 'Diagdn1': 2, 'Diagup2': 3, 'Grey08': 4, 'Diagdn2': 5, 'Diagup1': 6, 'Horiz': 7, 'Vert': 8, 'Grid2': 9, 'Grid1': 10, 'X2': 11, 'X1': 12, 'Grey50': 13, 'Grey92': 14, 'Grey04': 15}
-    line_style_idx = {'Automatic': -1, 'Solid': 0, 'Dash': 1, 'Center': 2, 'Phantom': 3, 'Big Dash': 4, 'Dot': 5, 'Dash-Dot': 6, 'Medium dash': 7}
-    
+class GFX:    
     def __init__(self):
+        self.idx = sf.GRPHSTL()
+        self.idx_gfx01 = sf.GRPHSTL_EXT01()
+        self.fill_style_idx = sf.GRPHSTL_EXT01.fill_style()
+        self.line_style_idx = sf.GRPHSTL.line_style()
+        
         self.idx2val = {v:k for k, v in self.idx.items()}
-        self.gfx01_idx2val = {v:k for k, v in self.gfx01_idx.items()}
+        self.idx2val_gfx01 = {v:k for k, v in self.idx_gfx01.items()}
         self.linestyle_idx2val = {v:k for k, v in self.line_style_idx.items()}
         self.fillstyle_idx2val = {v:k for k, v in self.fill_style_idx.items()}
     
@@ -176,57 +177,43 @@ class GFX:
         
         hdr = vals[0]
         idx = self.idx
-        if hdr == self.gfx01_idx2val[0]:
-            idx = self.gfx01_idx
-            self.fill_style = self.fillstyle_idx2val[int(vals[idx['fill-style']])]
+        if hdr == self.idx2val_gfx01[0]:
+            idx = self.idx_gfx01
+            self.fill_style = self.fillstyle_idx2val[int(vals[idx['fill_style']])]
         
         self.header = hdr
         
         c = Color()
-        c.set_color_int(vals[idx['color']])   
+        c.set_color_int(vals[idx['color_value']])   
         self.Color = c
         
         c_fill = Color()
-        c_fill.set_color_int(vals[idx['fill-color']])            
+        c_fill.set_color_int(vals[idx['fill_color']])            
         self.Fill_Color = c_fill
         
-        self.line_style = self.linestyle_idx2val[int(vals[idx['line-style']])]
-        self.line_width = int(vals[idx['line-width']])
+        self.line_style = self.linestyle_idx2val[int(vals[idx['line_style']])]
+        self.line_width = int(vals[idx['line_width']])
         
     # Create string of format: '|GRPHSTL_EXT01 color fill-color fill-style line-style line-width' or '|GRPHSTL color fill-color line-style line-width'
     def get_str(self):
         vals = {}
         
         idx = self.idx
-        if self.header == self.gfx01_idx2val[0]:
-            idx = self.gfx01_idx
-            vals[idx['fill-style']] = self.fill_style_idx[self.fill_style]
+        if self.header == self.idx2val_gfx01[0]:
+            idx = self.idx_gfx01
+            vals[idx['fill_style']] = self.fill_style_idx[self.fill_style]
             
         vals[0] = self.header
-        vals[idx['color']] = self.Color.color_int
-        vals[idx['fill-color']] = self.Fill_Color.color_int
-        vals[idx['line-style']] = self.line_style_idx[self.line_style]
-        vals[idx['line-width']] = self.line_width
+        vals[idx['color_value']] = self.Color.color_int
+        vals[idx['fill_color']] = self.Fill_Color.color_int
+        vals[idx['line_style']] = self.line_style_idx[self.line_style]
+        vals[idx['line_width']] = self.line_width
         return ' '.join([str(vals[i]) for i in range(len(vals))])
         
-class Font:
-    idx = {'|FNTSTL': 0, 'color': 1, 'type': 2}
-    font_dict = {'Fixed': 0, 
-                'Roman': 1, 
-                'Roman Italic': 2, 
-                'Roman Bold': 3, 
-                'Roman Bold Italic': 4, 
-                'Sans Serif': 5, 
-                'Script': 6, 
-                'Sans Serif Bold': 7, 
-                'Script Bold': 8, 
-                'Gothic': 9, 
-                'Old English': 10, 
-                'Kanji': 11, 
-                'Plot': 12, 
-                'Custom Style': 13  }
-    
+class Font:    
     def __init__(self):
+        self.idx = sf.FNTSTL()
+        self.font_dict = sf.FNTSTL.font()
         self.idx2val = {v:k for k, v in self.idx.items()}
         self.font_idx2val = {v:k for k, v in self.font_dict.items()}
      
@@ -240,7 +227,6 @@ class Font:
         c.set_color(color_str)
         
         self.Color = c
-        #self.font = self.font_dict[font]
         self.font = font
         return self.get_str()
         
@@ -248,16 +234,16 @@ class Font:
         vals = line_str.split()
         
         c = Color()
-        c.set_color_int(vals[self.idx['color']])
+        c.set_color_int(vals[self.idx['color_value']])
         self.Color = c
         
-        self.font = self.font_idx2val[int(vals[self.idx['type']])]
+        self.font = self.font_idx2val[int(vals[self.idx['font']])]
         
     def get_str(self):
         vals = {}
         vals[0] = self.idx2val[0]
-        vals[self.idx['color']] = self.Color.color_int
-        vals[self.idx['type']] = self.font_dict[self.font]
+        vals[self.idx['color_value']] = self.Color.color_int
+        vals[self.idx['font']] = self.font_dict[self.font]
         return ' '.join([str(vals[i]) for i in range(len(vals))])
 
 """
@@ -266,11 +252,10 @@ class Font:
 """        
 class Attribute:    
     def __init__(self):
-        a = sf.objects['A']
-        self._idx = a.idx
-        self.just_dict = a.field['justification']
-        self.rotation_dict = a.field['rotation']
-        self.vis_dict = a.field['visible']
+        self._idx = sf.A()
+        self.just_dict = sf.A.justification()
+        self.rotation_dict = sf.A.rotation()
+        self.vis_dict = sf.A.visible()
     
         self._idx2val = {v:k for k, v in self._idx.items()}
         self._rot_idx2val = {v:k for k, v in self.rotation_dict.items()}
@@ -319,13 +304,17 @@ class Attribute:
     - x [float]: x coordinate in mils of property text in symbol
     - y [float]: y coordinate in mils of property text in symbol
     - size [float]: text size of property in mils
-    - rot [int or str]: 0, 90, 180, or 270 in degrees
+    - rot [int or str]: 0, 90, 180, 270, MirrorH, Mirror90, Mirror180, or MirrorH270 in degrees
     - just [str]: text justification string from just_dict keys
     - vis [str]: text visibility string from vis_dict keys
     - val: Property value
     """
     def set_property(self, hdr, prop, x, y, size, rot, just, vis, val):
-        rot = str(rot) # Rotation can be set as string or int, but must be 0, 90, 180, or 270
+        if type(rot) == int: # 0, 90, 180, & 270 should be Rotate0, Rotate90, Rotate180, & Rotate270 strings
+            rot = 'Rotate'+str(rot)
+        elif type(rot) == str:
+            if rot.isnumeric():
+                rot = 'Rotate{}'.format(rot)
         assert rot in self.rotation_dict.keys(), 'Invalid rotation to Property.set_property()'
         assert just in self.just_dict.keys(), 'Invalid justification to Property.set_property()'
         assert vis in self.vis_dict.keys(), 'Invalid visibility to Property.set_property()'
@@ -356,11 +345,10 @@ class PinName(Attribute):
     def __init__(self):
         super().__init__()
         
-        l = sf.objects['L']
-        self._idx = l.idx
-        self.vis_dict = l.field['visible']
-        self.locality_dict = l.field['locality']
-        self.invert_dict = l.field['inverted']
+        self._idx = sf.L()
+        self.vis_dict = sf.L.label_visible()
+        self.locality_dict = sf.L.locality()
+        self.invert_dict = sf.L.inverted()
         
     def set_attribute_from_str(self, line_str, gfx_str=None, fnt_str=None):
         super().set_attribute_from_str(line_str, '', gfx_str=gfx_str, fnt_str=fnt_str)
@@ -376,7 +364,7 @@ class PinName(Attribute):
             self._idx['rotation']: self.rotation_dict[self.rotation],
             self._idx['justification']: self.just_dict[self.justification],
             self._idx['locality']: self.locality_dict['Local'],
-            self._idx['visible']: self.vis_dict[self.visible],
+            self._idx['label_visible']: self.vis_dict[self.visible],
             self._idx['inverted']: self.invert_dict['Not Inverted'],
             self._idx['value']: str(self.value)}
             
@@ -389,14 +377,13 @@ class Pin:
     active_low_id_start = ('-') # Identifies an active low pin name if it starts with these. 
     
     def __init__(self):
-        p = sf.objects['P'] # Pin Format Object
-        self._idx = p.idx # Pin row to string index
-        self._idx2val = p.idx2val
+        self._idx = sf.P() # Pin row to string index
+        self._idx2val = {v:k for k, v in self._idx.items()}
         
-        self._side_dict = p.field['side']
-        self._side_idx2val = p.field_idx2val['side']
+        self._side_dict = sf.P.side()
+        self._side_idx2val = {v:k for k, v in self._side_dict.items()}
         
-        self._inv_dict = p.field['inverted'] # Inverted
+        self._inv_dict = sf.P.inverted() # Inverted
         self._inv_dict.update({False: 0, 'False': 0, 'FALSE': 0, True: 1, 'True': 1, 'TRUE': 1})
         
         self.GFX = None
@@ -405,7 +392,7 @@ class Pin:
         vals = line_str.split()
         
         self.pid = vals[self._idx['id']]
-        self.set_line_pos(vals[self._idx['x1']], vals[self._idx['x2']], vals[self._idx['y1']], vals[self._idx['y2']])
+        self.set_line_pos(vals[self._idx['x_net']], vals[self._idx['x_sym']], vals[self._idx['y_net']], vals[self._idx['y_sym']])
         self.side = self._side_idx2val[int(vals[self._idx['side']])]
         self.inverted = bool(int(vals[self._idx['inverted']]))
         
@@ -510,11 +497,11 @@ class Pin:
         vals = {}        
         vals[self._idx['P']] = 'P'
         vals[self._idx['id']] = self.pid
-        vals[self._idx['x-net']] = x1
-        vals[self._idx['y-net']] = y1
-        vals[self._idx['x-sym']] = x2
-        vals[self._idx['y-sym']] = y2
-        vals[self._idx['unk']] = 0
+        vals[self._idx['x_net']] = x1
+        vals[self._idx['y_net']] = y1
+        vals[self._idx['x_sym']] = x2
+        vals[self._idx['y_sym']] = y2
+        vals[self._idx['unknown']] = 0
         vals[self._idx['side']] = self._side_dict[self.side]
         vals[self._idx['inverted']] = self._inv_dict[self.inverted]
         
@@ -568,10 +555,7 @@ class Pin:
         
         
 class Symbol:
-    sym_headers = ['V','K','|R','Y','U','b','l'] # All headers of the symbol file. This would exclude pin property headers
-    _v_idx = {'value': 1} # Version
-    _k_idx = {'name': 2} # License
-    _d_idx = {'date': 1} # Date row indexes
+    sym_headers = ['V','K','D','F','i','|R','Y','Z','U','b','l'] # All headers of the symbol file. This would exclude pin property headers
     _u_idx = {'x': 1, 'y': 2, 'size': 3, 'rotation': 4, 'justification': 5, 'visible': 6, 'value': 7} # Global Attribute
     _y_idx = {'value': 1}
     _version_dict = {'Original': 50, 'ViewDraw8': 51, 'HighPrecision-OneTenthMil': 53, 'HighPrecision-Metric': 54} # Internal Version Number: 50 - original, 51 - ViewDraw8.0.0_2001-08-13, 53 - High Precision [1/10 mil] ???, 54 - High Precision [metric] EE2007.8
@@ -636,9 +620,9 @@ class Symbol:
     def parse_sym(self, line_str):
         vals = line_str.split()
         if vals[0] == 'K':
-            self.name = vals[self._k_idx['name']]
+            self.name = vals[sf.K()['original_name']]
         elif vals[0] == '|R':
-            self.save_date = vals[self._d_idx['date']]
+            self.save_date = vals[sf.R()['timestamp']]
         elif vals[0] == 'Y':
             self.symbol_type = self._sym_type_idx2val[int(vals[self._y_idx['value']])]
         elif vals[0] == 'U':
@@ -649,7 +633,7 @@ class Symbol:
             b.add_graphics('Blue', 'Hollow', 'Solid', 1) # Temporary. Need to Import graphics from symbol file instead
             self.Box = b
         elif vals[0] == 'V':
-            self.version = self._version_idx2val[int(vals[self._v_idx['value']])]
+            self.version = self._version_idx2val[int(vals[sf.V()['version']])]
         elif vals[0] == 'l':
             l = PolyLine()
             l.set_polyline_from_str(line_str)
