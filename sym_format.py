@@ -179,7 +179,10 @@ class ObjectType:
         
     # Support indexing
     def __getitem__(self, key):
-        return self._format_idx2val[key]
+        if type(key) == int:
+            return self._format_idx2val[key]
+        else:
+            return self._format[key]
         
     def __len__(self):
         return len(self._format) - 1
@@ -224,7 +227,10 @@ class Field:
     # Support indexing
     def __getitem__(self, key):
         if hasattr(self, '_format_idx2val'):
-            return self._format_idx2val[key]
+            if type(key) == int:
+                return self._format_idx2val[key]
+            else:
+                return self._format[key]
         else:
             return None        
             

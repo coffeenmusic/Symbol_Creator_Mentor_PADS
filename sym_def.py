@@ -17,11 +17,15 @@ class PolyLine:
         self.Font = None
         self.count = 0
         self.coords = {}
-        
+    
+    """
+    Get string for symbol file's line
+    Build string from class attributes
+    """
     def get_str(self):
         vals = {}
-        vals[self.idx['l']] = 'l'
-        vals[self.idx['count']] = self.count
+        vals[sf.l['l']] = 'l'
+        vals[sf.l['count']] = self.count
         
         cs = self.idx['coord_start']
         for i, coord in enumerate(self.coords.values(), int(cs/2)):
@@ -60,17 +64,13 @@ class PolyLine:
         self.count += 1
         
 
-class Box:    
-    def __init__(self):
-        self.idx = sf.b()
-        self.idx2val = {v:k for k, v in self.idx.items()}
-        
+class Box:            
     def set_box_from_str(self, line_str):
         vals = line_str.split()
-        self.x1 = vals[self.idx['x1']]
-        self.x2 = vals[self.idx['x2']]
-        self.y1 = vals[self.idx['y1']]
-        self.y2 = vals[self.idx['y2']]
+        self.x1 = vals[sf.b['x1']]
+        self.x2 = vals[sf.b['x2']]
+        self.y1 = vals[sf.b['y1']]
+        self.y2 = vals[sf.b['y2']]
         
     def set_box(self, x1, y1, x2, y2):
         self.x1 = x1
@@ -86,11 +86,11 @@ class Box:
     # Create string of format: 'b x1 y1 x2 y2'
     def get_str(self):
         vals = {}
-        vals[self.idx['b']] = 'b'
-        vals[self.idx['x1']] = self.x1
-        vals[self.idx['y1']] = self.y1
-        vals[self.idx['x2']] = self.x2
-        vals[self.idx['y2']] = self.y2
+        vals[sf.b['b']] = 'b'
+        vals[sf.b['x1']] = self.x1
+        vals[sf.b['y1']] = self.y1
+        vals[sf.b['x2']] = self.x2
+        vals[sf.b['y2']] = self.y2
         return ' '.join([str(vals[i]) for i in range(len(vals))])
         
     def get_str_list(self):
@@ -100,10 +100,6 @@ class Box:
         
 class Color:                
     color_dict = {'Automatic': (-1,-1,-1), 'Red': (255,0,0), 'Dark Blue': (0,0,132), 'Blue': (0,0,255)}
-    
-    def __init__(self):
-        pass
-        #self.color_idx2val = {v:k for k, v in self.color_dict.items()}
     
     # Set color values from color string
     def set_color(self, color_str):
@@ -210,13 +206,7 @@ class GFX:
         vals[idx['line_width']] = self.line_width
         return ' '.join([str(vals[i]) for i in range(len(vals))])
         
-class Font:    
-    def __init__(self):
-        self.idx = sf.FNTSTL()
-        self.font_dict = sf.FNTSTL.font()
-        self.idx2val = {v:k for k, v in self.idx.items()}
-        self.font_idx2val = {v:k for k, v in self.font_dict.items()}
-     
+class Font:         
     """
     - font [str]: font string that is one of the Keys from font_dict
     - color [str]: color string that is one of the Keys from color_dict
@@ -234,16 +224,16 @@ class Font:
         vals = line_str.split()
         
         c = Color()
-        c.set_color_int(vals[self.idx['color_value']])
+        c.set_color_int(vals[sf.FNTSTL['color_value']])
         self.Color = c
         
-        self.font = self.font_idx2val[int(vals[self.idx['font']])]
+        self.font = sf.FNTSTL.font[int(vals[sf.FNTSTL['font']])]
         
     def get_str(self):
         vals = {}
-        vals[0] = self.idx2val[0]
-        vals[self.idx['color_value']] = self.Color.color_int
-        vals[self.idx['font']] = self.font_dict[self.font]
+        vals[0] = sf.FNTSTL[0]
+        vals[sf.FNTSTL['color_value']] = self.Color.color_int
+        vals[sf.FNTSTL['font']] = sf.FNTSTL.font[self.font]
         return ' '.join([str(vals[i]) for i in range(len(vals))])
 
 """
@@ -252,34 +242,24 @@ class Font:
 """        
 class Attribute:    
     def __init__(self):
-        self._idx = sf.A()
-        self.just_dict = sf.A.justification()
-        self.rotation_dict = sf.A.rotation()
-        self.vis_dict = sf.A.visible()
-    
-        self._idx2val = {v:k for k, v in self._idx.items()}
-        self._rot_idx2val = {v:k for k, v in self.rotation_dict.items()}
-        self._vis_idx2val = {v:k for k, v in self.vis_dict.items()}
-        self._just_idx2val = {v:k for k, v in self.just_dict.items()}
-        
         self.GFX = None
         self.Font = None
     
     def set_attribute_from_str(self, line_str, identifier, gfx_str=None, fnt_str=None):
         # Add = sign to identifier if line_str has it, but identifier doesn't so value is assigned correctly
-        if '=' in ' '.join(line_str.split()[self._idx['value']:]) and not('=' in identifier):
+        if '=' in ' '.join(line_str.split()[sf.A['value']:]) and not('=' in identifier):
             identifier += '='
             
         vals = line_str.split()
         
-        self.hdr = vals[self._idx['hdr']]
-        self.x = int(vals[self._idx['x']])
-        self.y = int(vals[self._idx['y']])
-        self.size = int(vals[self._idx['size']])
-        self.rotation = self._rot_idx2val[int(vals[self._idx['rotation']])]
-        self.justification = self._just_idx2val[int(vals[self._idx['justification']])]
-        self.visible = self._vis_idx2val[int(vals[self._idx['visible']])]
-        self.value = ' '.join(vals[self._idx['value']:])[len(identifier):] # Account for spaces in property value
+        self.hdr = vals[sf.A['A']]
+        self.x = int(vals[sf.A['x']])
+        self.y = int(vals[sf.A['y']])
+        self.size = int(vals[sf.A['size']])
+        self.rotation = sf.A.rotation[int(vals[sf.A['rotation']])]
+        self.justification = sf.A.justification[int(vals[sf.A['justification']])]
+        self.visible = sf.A.visible[int(vals[sf.A['visible']])]
+        self.value = ' '.join(vals[sf.A['value']:])[len(identifier):] # Account for spaces in property value
         self.property = identifier.split('=')[0]
         
         self.set_gfx_from_str(gfx_str)
@@ -305,8 +285,8 @@ class Attribute:
     - y [float]: y coordinate in mils of property text in symbol
     - size [float]: text size of property in mils
     - rot [int or str]: 0, 90, 180, 270, MirrorH, Mirror90, Mirror180, or MirrorH270 in degrees
-    - just [str]: text justification string from just_dict keys
-    - vis [str]: text visibility string from vis_dict keys
+    - just [str]: text justification string from sf.A.justification keys
+    - vis [str]: text visibility string from sf.A.visible keys
     - val: Property value
     """
     def set_property(self, hdr, prop, x, y, size, rot, just, vis, val):
@@ -315,9 +295,13 @@ class Attribute:
         elif type(rot) == str:
             if rot.isnumeric():
                 rot = 'Rotate{}'.format(rot)
-        assert rot in self.rotation_dict.keys(), 'Invalid rotation to Property.set_property()'
-        assert just in self.just_dict.keys(), 'Invalid justification to Property.set_property()'
-        assert vis in self.vis_dict.keys(), 'Invalid visibility to Property.set_property()'
+                
+        assert rot in sf.A.rotation().keys(), 'Invalid rotation to Property.set_property()'
+        assert just in sf.A.justification().keys(), 'Invalid justification to Property.set_property()'
+        if hdr == 'A':
+            assert vis in sf.A.visible().keys(), 'Invalid visibility to Property.set_property()'
+        if hdr == 'L':
+            assert vis in sf.L.label_visible().keys(), 'Invalid visibility to Property.set_property()'
     
         self.hdr = hdr
         self.x = mils_to_units(x)
@@ -331,24 +315,19 @@ class Attribute:
         
     def get_str(self):
         vals = {0: self.hdr, 
-            self._idx['x']: self.x,
-            self._idx['y']: self.y,
-            self._idx['size']: self.size,
-            self._idx['rotation']: self.rotation_dict[self.rotation],
-            self._idx['justification']: self.just_dict[self.justification],
-            self._idx['visible']: self.vis_dict[self.visible],
-            self._idx['value']: self.property+'='+str(self.value)}
+            sf.A['x']: self.x,
+            sf.A['y']: self.y,
+            sf.A['size']: self.size,
+            sf.A['rotation']: sf.A.rotation[self.rotation],
+            sf.A['justification']: sf.A.justification[self.justification],
+            sf.A['visible']: sf.A.visible[self.visible],
+            sf.A['value']: self.property+'='+str(self.value)}
             
         return ' '.join([str(vals[i]) for i in range(len(vals))])
         
 class PinName(Attribute):    
     def __init__(self):
         super().__init__()
-        
-        self._idx = sf.L()
-        self.vis_dict = sf.L.label_visible()
-        self.locality_dict = sf.L.locality()
-        self.invert_dict = sf.L.inverted()
         
     def set_attribute_from_str(self, line_str, gfx_str=None, fnt_str=None):
         super().set_attribute_from_str(line_str, '', gfx_str=gfx_str, fnt_str=fnt_str)
@@ -357,16 +336,16 @@ class PinName(Attribute):
         super().set_property('L', '', x, y, size, rot, just, vis, val)
         
     def get_str(self):
-        vals = {self._idx['L']: 'L', 
-            self._idx['x']: self.x,
-            self._idx['y']: self.y,
-            self._idx['size']: self.size,
-            self._idx['rotation']: self.rotation_dict[self.rotation],
-            self._idx['justification']: self.just_dict[self.justification],
-            self._idx['locality']: self.locality_dict['Local'],
-            self._idx['label_visible']: self.vis_dict[self.visible],
-            self._idx['inverted']: self.invert_dict['Not Inverted'],
-            self._idx['value']: str(self.value)}
+        vals = {sf.L['L']: 'L', 
+            sf.L['x']: self.x,
+            sf.L['y']: self.y,
+            sf.L['size']: self.size,
+            sf.L['rotation']: sf.L.rotation[self.rotation],
+            sf.L['justification']: sf.L.justification[self.justification],
+            sf.L['locality']: sf.L.locality['Local'],
+            sf.L['label_visible']: sf.L.label_visible[self.visible],
+            sf.L['inverted']: sf.L.inverted['Not Inverted'],
+            sf.L['value']: str(self.value)}
             
         return ' '.join([str(vals[i]) for i in range(len(vals))])
         
@@ -377,12 +356,6 @@ class Pin:
     active_low_id_start = ('-') # Identifies an active low pin name if it starts with these. 
     
     def __init__(self):
-        self._idx = sf.P() # Pin row to string index
-        self._idx2val = {v:k for k, v in self._idx.items()}
-        
-        self._side_dict = sf.P.side()
-        self._side_idx2val = {v:k for k, v in self._side_dict.items()}
-        
         self._inv_dict = sf.P.inverted() # Inverted
         self._inv_dict.update({False: 0, 'False': 0, 'FALSE': 0, True: 1, 'True': 1, 'TRUE': 1})
         
@@ -391,10 +364,10 @@ class Pin:
     def set_pin_from_str(self, line_str, gfx_str=None, fnt_str=None):
         vals = line_str.split()
         
-        self.pid = vals[self._idx['id']]
-        self.set_line_pos(vals[self._idx['x_net']], vals[self._idx['x_sym']], vals[self._idx['y_net']], vals[self._idx['y_sym']])
-        self.side = self._side_idx2val[int(vals[self._idx['side']])]
-        self.inverted = bool(int(vals[self._idx['inverted']]))
+        self.pid = vals[sf.P['id']]
+        self.set_line_pos(vals[sf.P['x_net']], vals[sf.P['x_sym']], vals[sf.P['y_net']], vals[sf.P['y_sym']])
+        self.side = sf.P.side[int(vals[sf.P['side']])]
+        self.inverted = bool(int(vals[sf.P['inverted']]))
         
         if not(gfx_str == None):
             g = GFX()
@@ -495,15 +468,15 @@ class Pin:
     def get_str(self):
         x1, x2, y1, y2 = self.line_pos
         vals = {}        
-        vals[self._idx['P']] = 'P'
-        vals[self._idx['id']] = self.pid
-        vals[self._idx['x_net']] = x1
-        vals[self._idx['y_net']] = y1
-        vals[self._idx['x_sym']] = x2
-        vals[self._idx['y_sym']] = y2
-        vals[self._idx['unknown']] = 0
-        vals[self._idx['side']] = self._side_dict[self.side]
-        vals[self._idx['inverted']] = self._inv_dict[self.inverted]
+        vals[sf.P['P']] = 'P'
+        vals[sf.P['id']] = self.pid
+        vals[sf.P['x_net']] = x1
+        vals[sf.P['y_net']] = y1
+        vals[sf.P['x_sym']] = x2
+        vals[sf.P['y_sym']] = y2
+        vals[sf.P['unknown']] = 0
+        vals[sf.P['side']] = sf.P.side[self.side]
+        vals[sf.P['inverted']] = self._inv_dict[self.inverted]
         
         return ' '.join([str(vals[i]) for i in range(len(vals))])
         
