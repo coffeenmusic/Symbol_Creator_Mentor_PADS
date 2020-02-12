@@ -529,20 +529,12 @@ class Pin:
         
 class Symbol:
     sym_headers = ['V','K','D','F','i','|R','Y','Z','U','b','l'] # All headers of the symbol file. This would exclude pin property headers
-    _u_idx = {'x': 1, 'y': 2, 'size': 3, 'rotation': 4, 'justification': 5, 'visible': 6, 'value': 7} # Global Attribute
-    _y_idx = {'value': 1}
-    _version_dict = {'Original': 50, 'ViewDraw8': 51, 'HighPrecision-OneTenthMil': 53, 'HighPrecision-Metric': 54} # Internal Version Number: 50 - original, 51 - ViewDraw8.0.0_2001-08-13, 53 - High Precision [1/10 mil] ???, 54 - High Precision [metric] EE2007.8
-    _symtype_to_idx = {'Composite': 0, 'Module': 1, 'Annotate': 3, 'Pin': 4, 'Border': 5}
-    _sym_type_dict = {'Composite': 0, 'Module': 1, 'Pin': 2, 'Annotate': 4, 'Border': 5}
     _comp2refdes = {'IC': 'U?', 'Integrated Circuit': 'U?', 'Resistor': 'R?', 'Capacitor': 'C?', 'Inductor': 'L?', 
     'Connector': 'J?', 'Diode': 'D?', 'Test Point': 'TP?', 'Ferrite Bead': 'FB?', 'Transformer': 'T?', 'XFMR': 'T?', 
     'Oscillator': 'Y?', 'LED': 'LD?', 'Transistor': 'Q?', 'Switch': 'SW?'}
     
-    def __init__(self, symbol_type='Module'):       
-        self._sym_type_idx2val = {v:k for k, v in self._sym_type_dict.items()}
-        self._version_idx2val = {v:k for k, v in self._version_dict.items()}
-    
-        self.version = 'HighPrecision-Metric'
+    def __init__(self, symbol_type='Module', version='HighPrecision-Metric'):           
+        self.version = version
         self.lines = []
         self.Box = None
         self.pins = {}
@@ -593,11 +585,11 @@ class Symbol:
     def parse_sym(self, line_str):
         vals = line_str.split()
         if vals[0] == 'K':
-            self.name = vals[sf.K()['original_name']]
+            self.name = vals[sf.K['original_name']]
         elif vals[0] == '|R':
-            self.save_date = vals[sf.R()['timestamp']]
+            self.save_date = vals[sf.R['timestamp']]
         elif vals[0] == 'Y':
-            self.symbol_type = self._sym_type_idx2val[int(vals[self._y_idx['value']])]
+            self.symbol_type = sf.Y.symbol_type[int(vals[sf.Y['symbol_type']])]
         elif vals[0] == 'U':
             self.__set_property_from_str(line_str)
         elif vals[0] == 'b':
@@ -606,14 +598,14 @@ class Symbol:
             b.add_graphics('Blue', 'Hollow', 'Solid', 1) # Temporary. Need to Import graphics from symbol file instead
             self.Box = b
         elif vals[0] == 'V':
-            self.version = self._version_idx2val[int(vals[sf.V()['version']])]
+            self.version = sf.V.version[int(vals[sf.V['version']])]
         elif vals[0] == 'l':
             l = PolyLine()
             l.set_polyline_from_str(line_str)
             self.lines += [l]               
             
     def __set_property_from_str(self, line_str):
-        identifier = ''.join(line_str.split()[self._u_idx['value']:]).split('=')[0]
+        identifier = ''.join(line_str.split()[sf.U['value']:]).split('=')[0]
     
         attr = Attribute()
         attr.set_attribute_from_str(line_str, identifier)
@@ -757,11 +749,11 @@ class Symbol:
         | at the start of a line means it is a comment line
     """
     def _get_header_str_list(self):
-        hdr = ['V '+str(self._version_dict[self.version])] # V [Version]
+        hdr = ['V '+str(sf.V.version[self.version])] # V [Version]
         hdr += ['K 33671749690 ' + self.name]
         hdr += ['F Case']
         hdr += ['|R ' + datetime.datetime.now().strftime('%H:%M:%S_%m-%d-%y')]
-        hdr += ['Y ' + str(self._symtype_to_idx[self.symbol_type])]
+        hdr += ['Y ' + str(sf.Y.symbol_type[self.symbol_type])]
         hdr += ['D 0 0 2540000 2540000', 'Z 10', 'i 3']
         return hdr
     

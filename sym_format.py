@@ -160,10 +160,12 @@ class ObjectType:
         self._format = obj_dict.copy()
         self._format_idx2val = {v:k for k, v in self._format.items()}
 
-        obj_dict.pop(self._identifier)
-
         # Create properties for each key in the dictionary
-        for k, v in obj_dict.items():        
+        for k, v in obj_dict.items(): 
+            # Skip identifier
+            if k == self._identifier:
+                continue
+                
             assert k[0].isalpha(), 'First letter of all keys must not be numeric'
             
             #if type(v) != int:
