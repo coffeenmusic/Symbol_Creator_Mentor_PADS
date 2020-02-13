@@ -332,6 +332,9 @@ class PinName(Attribute):
     def set_attribute_from_str(self, line_str, gfx_str=None, fnt_str=None):
         super().set_attribute_from_str(line_str, '', gfx_str=gfx_str, fnt_str=fnt_str)
         
+        vals = line_str.split()
+        self.visible = sf.L.label_visible[int(vals[sf.L['label_visible']])]
+        
     def set_property(self, x, y, size, rot, just, vis, val):
         super().set_property('L', '', x, y, size, rot, just, vis, val)
         
@@ -738,8 +741,8 @@ class Symbol:
     
     """
         V: Version # [Must be the first line of the symbol]
-        K: License ? Name
-        F: Unknown
+        K: License MagicNumber Name
+        F: Case Preservation
         |R: Datetime Comment
         Y: SymbolType
         D: Size x_min y_min x_max y_max
