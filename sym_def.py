@@ -332,8 +332,10 @@ class PinName(Attribute):
     def set_attribute_from_str(self, line_str, gfx_str=None, fnt_str=None):
         super().set_attribute_from_str(line_str, '', gfx_str=gfx_str, fnt_str=fnt_str)
         
-        vals = line_str.split()
+        vals = line_str.split()       
         self.visible = sf.L.label_visible[int(vals[sf.L['label_visible']])]
+        self.value = vals[sf.L['value']]
+        self.property = None
         
     def set_property(self, x, y, size, rot, just, vis, val):
         super().set_property('L', '', x, y, size, rot, just, vis, val)
