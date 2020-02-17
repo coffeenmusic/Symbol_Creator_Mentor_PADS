@@ -666,7 +666,7 @@ class Symbol:
                     fnt_str = pin_str_list[i+1]
                 p.set_pin_type_from_str(line_str, fnt_str=fnt_str)
             
-        
+        assert hasattr(p, 'Number'), "This symbol can't be imported. The symbol being imported does not have a pin number for the following:\n{}".format('\n'.join(pin_str_list))
         self.pins[p.Number.value] = p
         return p
         
