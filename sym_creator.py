@@ -456,6 +456,25 @@ class Symbol_Creator:
         f = open(os.path.join(self.out_dir, sym_name), 'w')
         self.__write_str_list(f, self.sym_str_list)
         f.close()
+        
+    """
+    + Identifiers should be concatenated to the previous line
+    """
+    def concat_line_ext(self, file):
+        cat_file = []
+        i = 0
+        prev_l = ''
+        for l in file:
+            if l.startswith('+'):
+                cat_file[i-1] = cat_file[i-1].rstrip() + l[len('+ '):]
+            elif l.startswith(' ') and prev_l.startswith('+'):
+                cat_file[i-1] = cat_file[i-1].rstrip() + l
+            else:
+                cat_file += [l]
+                i += 1
+                
+            prev_l = l    
+        return cat_file
     
     """
     Import a mentor pads symbol file in to Symbol class 
@@ -471,6 +490,7 @@ class Symbol_Creator:
         pin_str_list = []
 
         with open(file_path, 'r') as sym_file:
+            sym_file = self.concat_line_ext(sym_file) # Concat '+' identifiers to previous line
             for l in sym_file:
                 if l.startswith('Q'):
                     # TODO: Add import of Q
