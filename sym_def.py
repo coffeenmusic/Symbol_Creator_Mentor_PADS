@@ -366,6 +366,9 @@ class Pin:
         
         self.GFX = None
         
+        # Set default empty pin type
+        self.set_pin_type('NONE')
+        
     def set_pin_from_str(self, line_str, gfx_str=None, fnt_str=None):
         vals = line_str.split()
         
